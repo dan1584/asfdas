@@ -1,0 +1,52 @@
+RewriteEngine on
+
+RewriteCond %{HTTP_HOST} ^pusatdata.denpasarkota.go.id$ [OR]
+RewriteCond %{HTTP_HOST} ^bankdata.denpasarkota.go.id$
+RewriteRule (.*)$ https://dota.denpasarkota.go.id/$1 [R=301,L]
+
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^user/([0-9a-zA-Z_-]+)$ index.php?user=$1
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^([0-9a-zA-Z_-]+)$ index.php?language=$1
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^([0-9a-zA-Z_-]+)/$ index.php?language=$1
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^([0-9a-zA-Z_-]+)/([0-9a-zA-Z_-]+)$ index.php?page=$2&language=$1
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^([0-9a-zA-Z_-]+)/([0-9a-zA-Z_-]+)/$ index.php?page=$2&language=$1
+
+DirectoryIndex index.php
+
+RewriteCond %{SCRIPT_FILENAME} !-d
+RewriteCond %{SCRIPT_FILENAME} !-f
+RewriteRule ^ index.php [L]
+
+RewriteRule !^(index\.php|css|js|.*\.png|.*\.PNG|.*\.jpg|.*\.JPG|.*\.jpeg|.*\.JPEG|.*\.gif|.*\.xml|.*\.txt|.*\.html|.*\.php|.*\.GIF|.*\.pdf|.*\.PDF|.*\.doc|.*\.docx|.*\.xls|.*\.xlsx|.*\.csv|.*\.json|.*\.ppt|.*\.pptx|.*\.mp4|.*\.avi|.*\.dwg|.*\.DWG|.*\.dxf|.*\.DXF) [NC,F]
+
+ErrorDocument 403 /?error=true
+ErrorDocument 404 /?error=true
+ErrorDocument 405 /?error=true
+ErrorDocument 408 /?error=true
+ErrorDocument 500 /?error=true
+ErrorDocument 502 /?error=true
+ErrorDocument 504 /?error=true
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php56” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php56 .php .php5 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
