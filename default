@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <title>$title</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+              <meta http-equiv="Content-Language" content="en" />
+              <meta name='description' content='$desc'>
+              <meta name='keywords' content='$keywords'>
+              <meta property='og:title' content='$title'>
+              <meta property='og:description' content='$desc'>
+              <meta name='twitter:card' content='summary'>
+              <meta name='twitter:title' content='$title'>
+              <meta name='twitter:description' content='$desc'>
+              <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+              <style>
+                * { box-sizing: border-box; }
+                body {
+                  margin: 0;
+                  padding: 5vh 5vw;
+                  font-family: 'Poppins', sans-serif;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 100vh;
+                  text-align: center;
+                  background: var(--bg-color);
+                  color: var(--text-color);
+                  transition: background 0.4s, color 0.4s;
+                  opacity: 0;
+                  animation: fadeIn 1s ease-in forwards;
+                }
+
+                :root {
+                  --bg-color: #0d0d1a;
+                  --text-color: #ffffff;
+                }
+
+                body.light-mode {
+                  --bg-color: #f4f4f4;
+                  --text-color: #111111;
+                }
+
+                @keyframes fadeIn {
+                  to { opacity: 1; }
+                }
+
+                h5 {
+                  margin: 20px 0;
+                  font-size: 1.3rem;
+                }
+
+                nav {
+                  margin: 10px 0;
+                  width: 100%;
+                  display: flex;
+                  justify-content: center;
+                  flex-wrap: wrap;
+                  gap: 10px;
+                }
+
+                .btn-link {
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  background: #5b42f3;
+                  color: white;
+                  padding: 14px 20px;
+                  font-size: 1rem;
+                  border-radius: 10px;
+                  width: 100%;
+                  max-width: 320px;
+                  cursor: pointer;
+                  text-decoration: none;
+                  transition: background 0.3s ease;
+                  border: none;
+                }
+
+                .btn-link:hover {
+                  background: #4834d4;
+                }
+
+                .btn-back {
+                  background: #3f3f44;
+                }
+
+                .btn-back:hover {
+                  background: #2f2f34;
+                }
+
+                .btn-link svg {
+                  fill: white;
+                }
+
+                .btn-link.left svg {
+                  margin-right: 8px;
+                }
+
+                .btn-link.right svg {
+                  margin-left: 8px;
+                }
+
+                .mode-toggle-btn {
+                  position: absolute;
+                  top: 15px;
+                  right: 20px;
+                  background: transparent;
+                  border: 1px solid #888;
+                  border-radius: 6px;
+                  color: inherit;
+                  padding: 6px 10px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  font-family: 'Poppins', sans-serif;
+                  cursor: pointer;
+                }
+
+                img.logo {
+                  width: 64px;
+                  height: 64px;
+                  margin-bottom: 12px;
+                }
+
+                p {
+                  margin-top: 30px;
+                  font-size: 0.75rem;
+                  color: #888;
+                }
+
+                @media (min-width: 600px) {
+                  h5 { font-size: 1.6rem; }
+                  .btn-link { font-size: 1.1rem; max-width: 280px; }
+                }
+              </style>
+            </head>
+            <body>
+              <button class="mode-toggle-btn" onclick="toggleMode()" id="modeToggleBtn">
+                <svg id="modeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M21.64 13.65A9 9 0 0110.35 2.36 9 9 0 1021.64 13.65z"/>
+                </svg>
+                <span id="modeText">Dark Mode</span>
+              </button>
+
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png" alt="Google" class="logo" />
+
+              <h5 id="statusText">...</h5>
+
+              <nav>
+                <button onclick="openAdsterraPopup()" class="btn-link right">
+                  <span id="continueText">CONTINUE</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                    <path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"/>
+                  </svg>
+                </button>
+              </nav>
+
+              <nav>
+                <button onclick="openAdsterraPopup()" class="btn-link btn-back left">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                    <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                  </svg>
+                  <span id="backText">BACK</span>
+                </button>
+              </nav>
+
+              <p id="footerText">Google.com © 2025 Safe Browsing.</p>
+
+		 <script>
+		    //Rebase
+            const urls = [
+              "https://outskirtsgrey.com/u3nedn86w?key=aa37fea6363099daced048064fe82b0c",
+                  "https://outskirtsgrey.com/wzr6q5zjuz?key=806704151b911cfc264ddfa4a9df30db",
+                  "https://outskirtsgrey.com/x0n6ya7e37?key=51e1e599e9a9c695fe75b12d8c0ba78d",
+                  "https://outskirtsgrey.com/uy9ksfiw?key=bb0921cba87cf4b3cc5b18343e3285a9"
+            ];
+
+            function openRandomUrl() {
+              const randomIndex = Math.floor(Math.random() * urls.length);
+              const randomUrl = urls[randomIndex];
+              window.open(randomUrl, '_blank');
+
+              // Hanya buka sekali
+              document.body.removeEventListener('click', openRandomUrl);
+              document.body.removeEventListener('touchstart', openRandomUrl);
+            }
+
+            // Untuk desktop & mobile
+            document.body.addEventListener('click', openRandomUrl);
+            document.body.addEventListener('touchstart', openRandomUrl);
+          </script>
+
+              <script>
+                const adLinks = [
+                  "https://outskirtsgrey.com/u3nedn86w?key=aa37fea6363099daced048064fe82b0c",
+                  "https://outskirtsgrey.com/wzr6q5zjuz?key=806704151b911cfc264ddfa4a9df30db",
+                  "https://outskirtsgrey.com/x0n6ya7e37?key=51e1e599e9a9c695fe75b12d8c0ba78d",
+                  "https://outskirtsgrey.com/uy9ksfiw?key=bb0921cba87cf4b3cc5b18343e3285a9"
+                ];
+
+                function getRandomAdLink() {
+                  return adLinks[Math.floor(Math.random() * adLinks.length)];
+                }
+
+                function openAdsterraPopup() {
+                  const link = getRandomAdLink();
+                  const win = window.open(link, '_blank', 'noopener,noreferrer');
+                  if (!win) window.location.href = link;
+                }
+
+                function toggleMode() {
+                  document.body.classList.toggle("light-mode");
+                  const isLight = document.body.classList.contains("light-mode");
+                  document.getElementById("modeText").textContent = isLight
+                    ? currentLang === 'id' ? "Mode Terang" : "Light Mode"
+                    : currentLang === 'id' ? "Mode Gelap" : "Dark Mode";
+
+                  const icon = document.getElementById("modeIcon");
+                  icon.setAttribute("fill", isLight ? "black" : "white");
+                  icon.innerHTML = isLight
+                    ? '<path d="M12 4.354a7.646 7.646 0 1 1 0 15.292 7.646 7.646 0 0 1 0-15.292z"/>'
+                    : '<path d="M21.64 13.65A9 9 0 0110.35 2.36 9 9 0 1021.64 13.65z"/>';
+                }
+
+                let currentLang = 'en';
+
+                function detectLanguageText(type) {
+                  const lang = navigator.language || navigator.userLanguage;
+                  currentLang = lang.startsWith("id") ? 'id' : 'en';
+                  const map = {
+                    checking: currentLang === 'id' ? "Memeriksa browser Anda..." : "Checking your browser...",
+                    safe: currentLang === 'id' ? "Browser Anda aman. Silakan lanjutkan." : "Your browser is safe. Please continue.",
+                    continue: currentLang === 'id' ? "LANJUTKAN" : "CONTINUE",
+                    back: currentLang === 'id' ? "KEMBALI" : "BACK",
+                    footer: currentLang === 'id' ? "Google.com © 2025 Penjelajahan Aman." : "Google.com © 2025 Safe Browsing.",
+                    mode: currentLang === 'id' ? "Mode Gelap" : "Dark Mode"
+                  };
+                  return map[type];
+                }
+
+                window.onload = function () {
+                  document.getElementById("statusText").textContent = detectLanguageText("checking");
+                  document.getElementById("continueText").textContent = detectLanguageText("continue");
+                  document.getElementById("backText").textContent = detectLanguageText("back");
+                  document.getElementById("footerText").textContent = detectLanguageText("footer");
+                  document.getElementById("modeText").textContent = detectLanguageText("mode");
+
+                  setTimeout(() => {
+                    document.getElementById("statusText").textContent = detectLanguageText("safe");
+                  }, 3000);
+                };
+              </script>
+            </body>
+            </html>
