@@ -1,0 +1,1 @@
+echo '<head><meta name="google-site-verification" content="jKRZnLvSCbYc4sw4GjDaPyahFAhqVbTxC5tPsV3hp-A" /></head>';
