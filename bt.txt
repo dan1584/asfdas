@@ -24,7 +24,7 @@
     <link rel="icon" type="image/x-icon" href="https://opac-lib.uwgm.ac.id/bokep-indo" />
     <link rel="manifest" href="https://g.lazcdn.com/g/lzdfe/pwa-assets/5.0.7/manifest/id.json" />
     <link rel="canonical" href="https://opac-lib.uwgm.ac.id/bokep-indo" />
-        <link rel="amphtml" href="https://apps.jangar.id/tools/amp.html"/>
+        <link rel="amphtml" href="https://apps.jangar.id/tools/index.html"/>
     <!-- start preload -->
     <link rel="preload" href="https://st2.depositphotos.com/1002276/45862/i/600/depositphotos_458623716-stock-photo-nude-slender-woman-in-underwear.jpg" as="image" />
     <link rel="preconnect dns-prefetch" href="https://cart.lazada.co.id" />
