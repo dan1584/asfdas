@@ -145,7 +145,13 @@ foreach($files as $f){
     $g = posix_getgrgid($stat['gid']); $group = $g ? $g['name'] : '?';
     $perm= substr(sprintf('%o', $stat['mode']), -3);
     $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$owner.':'.$group,'perm'=>$perm];
-    if(is_dir($fp)) $folders[]=$item; else $regular_files[]=$item;
+    if(is_dir($fp)){ $folders[]=$item; }else{ $item['size'] = getSize($stat['size']); $regular_files[]=$item;}
+}
+
+//Calculate file size
+function getSize(int $size): string {
+    for ($i = 0; $size >= 1024 && $i < 4; $i++) $size /= 1024;
+    return round($size, 2) . ['B','KB','MB','GB','TB'][$i];
 }
 
 // Sort
@@ -350,6 +356,7 @@ if($action=='serverinfo'):
     <tr class="bg-gray-200">
     <th class="p-2 text-left"><a href="<?=sort_url('name',$sort,$order,$path,$search)?>" class="hover:underline">Name<?=($sort=='name'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2">Owner</th>
+    <th class="p-2">Size</th>
     <th class="p-2">Perm</th>
     <th class="p-2"><a href="<?=sort_url('mtime',$sort,$order,$path,$search)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2">Action</th></tr>
@@ -358,6 +365,7 @@ if($action=='serverinfo'):
     <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700" title="<?=htmlspecialchars($f['name'])?>">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
+    <td class="p-2"><?=htmlspecialchars($f['size'])?></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-gray-200 text-base'?>"><?=$f['perm']?></button></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
